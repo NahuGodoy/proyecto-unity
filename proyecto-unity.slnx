@@ -3,6 +3,7 @@
   <Project Path="fps.Game.csproj" />
   <Project Path="Unity.Microgame.Tutorials.csproj" />
   <Project Path="NavMeshComponents.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="fps.AI.csproj" />
   <Project Path="fps.Gameplay.csproj" />
   <Project Path="Unity.FPS.Tutorials.csproj" />
