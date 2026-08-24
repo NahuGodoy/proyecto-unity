@@ -34,5 +34,10 @@ namespace Unity.FPS.UI
                 }
             }
         }
+
+        public void Quit()
+        {
+            Application.Quit();
+        }
     }
 }
