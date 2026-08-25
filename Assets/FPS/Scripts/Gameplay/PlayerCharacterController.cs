@@ -173,10 +173,15 @@ namespace Unity.FPS.Gameplay
 
         void Update()
         {
-            // check for Y kill
+            
+            // Check for Y kill / Respawn
             if (!IsDead && transform.position.y < KillHeight)
             {
-                m_Health.Kill();
+                m_Health.TakeDamage(50,null);
+                CharacterVelocity = Vector3.zero;
+                m_Controller.enabled = false;
+                transform.position = new Vector3(0f, 1f, 0f);
+                m_Controller.enabled = true;
             }
 
             HasJumpedThisFrame = false;
