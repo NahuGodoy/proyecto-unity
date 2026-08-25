@@ -103,6 +103,7 @@ namespace Unity.FPS.Gameplay
         public bool HasJumpedThisFrame { get; private set; }
         public bool IsDead { get; private set; }
         public bool IsCrouching { get; private set; }
+        private FloorMovement m_PlataformaActual;
 
         public float RotationMultiplier
         {
@@ -235,6 +236,7 @@ namespace Unity.FPS.Gameplay
             // reset values before the ground check
             IsGrounded = false;
             m_GroundNormal = Vector3.up;
+            m_PlataformaActual = null;
 
             // only try to detect ground if it's been a short amount of time since last jump; otherwise we may snap to the ground instantly after we try jumping
             if (Time.time >= m_LastTimeJumped + k_JumpGroundingPreventionTime)
@@ -253,6 +255,9 @@ namespace Unity.FPS.Gameplay
                         IsNormalUnderSlopeLimit(m_GroundNormal))
                     {
                         IsGrounded = true;
+
+                        // DETECTAR PLATAFORMA MÓVIL
+                        m_PlataformaActual = hit.collider.GetComponent<FloorMovement>();
 
                         // handle snapping to the ground
                         if (hit.distance > m_Controller.skinWidth)
@@ -371,7 +376,16 @@ namespace Unity.FPS.Gameplay
             // apply the final calculated velocity value as a character movement
             Vector3 capsuleBottomBeforeMove = GetCapsuleBottomHemisphere();
             Vector3 capsuleTopBeforeMove = GetCapsuleTopHemisphere(m_Controller.height);
-            m_Controller.Move(CharacterVelocity * Time.deltaTime);
+
+            // --- MODIFICACIÓN: Sumar el movimiento de la plataforma ---
+            Vector3 totalMovement = CharacterVelocity * Time.deltaTime;
+            if (IsGrounded && m_PlataformaActual != null)
+            {
+                totalMovement += m_PlataformaActual.DeltaMovimiento;
+            }
+
+            m_Controller.Move(totalMovement);
+
 
             // detect obstructions to adjust velocity accordingly
             m_LatestImpactSpeed = Vector3.zero;

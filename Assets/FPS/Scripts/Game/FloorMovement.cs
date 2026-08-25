@@ -8,11 +8,15 @@ public class FloorMovement : MonoBehaviour
     public float velocidad = 2f;
     public float distancia = 2f;
 
-    Vector3 inicio;
+    public Vector3 DeltaMovimiento { get; private set; }
+
+    private Vector3 inicio;
+    private Vector3 posicionAnterior;
 
     void Start()
     {
         inicio = transform.position;
+        posicionAnterior = transform.position;
     }
 
     void Update()
@@ -23,5 +27,9 @@ public class FloorMovement : MonoBehaviour
             transform.position = inicio + new Vector3(0, mov, 0);
         else
             transform.position = inicio + new Vector3(mov, 0, 0);
+
+        // Guardamos la diferencia de posición de este frame
+        DeltaMovimiento = transform.position - posicionAnterior;
+        posicionAnterior = transform.position;
     }
 }
