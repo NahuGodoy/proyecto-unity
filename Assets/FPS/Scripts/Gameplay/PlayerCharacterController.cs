@@ -1,11 +1,12 @@
-using Unity.FPS.Game;
+﻿using Unity.FPS.Game;
 using UnityEngine;
 using UnityEngine.Events;
+using Photon.Pun; 
 
 namespace Unity.FPS.Gameplay
 {
     [RequireComponent(typeof(CharacterController), typeof(PlayerInputHandler), typeof(AudioSource))]
-    public class PlayerCharacterController : MonoBehaviour
+    public class PlayerCharacterController : MonoBehaviourPunCallbacks
     {
         [Header("References")] [Tooltip("Reference to the main camera used for the player")]
         public Camera PlayerCamera;
@@ -136,14 +137,48 @@ namespace Unity.FPS.Gameplay
 
         void Awake()
         {
-            ActorsManager actorsManager = FindAnyObjectByType<ActorsManager>();
-            if (actorsManager != null)
-                actorsManager.SetPlayer(gameObject);
+            // Solo asignamos el jugador en ActorsManager si es el cliente local
+            if (photonView.IsMine)
+            {
+                ActorsManager actorsManager = FindAnyObjectByType<ActorsManager>();
+                if (actorsManager != null)
+                    actorsManager.SetPlayer(gameObject);
+            }
         }
 
         void Start()
         {
-            // fetch components on the same gameObject
+            // -------------------------------------------------------------
+            // 1. DESACTIVAR COMPONENTES SI PERTENECE A OTRO JUGADOR
+            // -------------------------------------------------------------
+            if (!photonView.IsMine)
+            {
+                // Apagar la cámara del jugador remoto para que no sobreescriba la pantalla local
+                if (PlayerCamera != null)
+                    PlayerCamera.gameObject.SetActive(false);
+
+                // Apagar el AudioListener del jugador remoto
+                AudioListener audioListener = GetComponentInChildren<AudioListener>();
+                if (audioListener != null)
+                    audioListener.enabled = false;
+
+                // Desactivar el control de inputs en jugadores remotos
+                m_InputHandler = GetComponent<PlayerInputHandler>();
+                if (m_InputHandler != null)
+                    m_InputHandler.enabled = false;
+
+                // Opcional: Desactivar el gestor de armas remoto si maneja inputs directos
+                m_WeaponsManager = GetComponent<PlayerWeaponsManager>();
+                if (m_WeaponsManager != null)
+                    m_WeaponsManager.enabled = false;
+
+                // Salimos para no ejecutar la lógica de inicialización del jugador local
+                return;
+            }
+
+            // -------------------------------------------------------------
+            // 2. INICIALIZACIÓN NORMAL PARA EL JUGADOR LOCAL (photonView.IsMine)
+            // -------------------------------------------------------------
             m_Controller = GetComponent<CharacterController>();
             DebugUtility.HandleErrorIfNullGetComponent<CharacterController, PlayerCharacterController>(m_Controller,
                 this, gameObject);
@@ -173,7 +208,8 @@ namespace Unity.FPS.Gameplay
 
         void Update()
         {
-            
+            if (!photonView.IsMine)
+                return;
             // Check for Y kill / Respawn
             if (!IsDead && transform.position.y < KillHeight)
             {

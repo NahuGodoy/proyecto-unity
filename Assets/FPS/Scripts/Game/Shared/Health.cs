@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Events;
+using Photon.Pun; // Requiere Photon
 
 namespace Unity.FPS.Game
 {
@@ -22,19 +23,39 @@ namespace Unity.FPS.Game
         public bool IsCritical() => GetRatio() <= CriticalHealthRatio;
 
         bool m_IsDead;
+        private PhotonView m_PhotonView;
+
+        void Awake()
+        {
+            m_PhotonView = GetComponent<PhotonView>();
+        }
 
         void Start()
         {
             CurrentHealth = MaxHealth;
         }
 
+        // --- HEAL ---
         public void Heal(float healAmount)
+        {
+            if (m_PhotonView != null && PhotonNetwork.IsConnected)
+            {
+                // Enviar la orden de curación a todos los clientes por red
+                m_PhotonView.RPC(nameof(RPC_Heal), RpcTarget.All, healAmount);
+            }
+            else
+            {
+                RPC_Heal(healAmount);
+            }
+        }
+
+        [PunRPC]
+        private void RPC_Heal(float healAmount)
         {
             float healthBefore = CurrentHealth;
             CurrentHealth += healAmount;
             CurrentHealth = Mathf.Clamp(CurrentHealth, 0f, MaxHealth);
 
-            // call OnHeal action
             float trueHealAmount = CurrentHealth - healthBefore;
             if (trueHealAmount > 0f)
             {
@@ -42,32 +63,57 @@ namespace Unity.FPS.Game
             }
         }
 
+        // --- TAKE DAMAGE ---
         public void TakeDamage(float damage, GameObject damageSource)
         {
             if (Invincible)
                 return;
 
+            if (m_PhotonView != null && PhotonNetwork.IsConnected)
+            {
+                // Enviar la orden de daño a todos los clientes por red
+                m_PhotonView.RPC(nameof(RPC_TakeDamage), RpcTarget.All, damage);
+            }
+            else
+            {
+                RPC_TakeDamage(damage);
+            }
+        }
+
+        [PunRPC]
+        private void RPC_TakeDamage(float damage)
+        {
             float healthBefore = CurrentHealth;
             CurrentHealth -= damage;
             CurrentHealth = Mathf.Clamp(CurrentHealth, 0f, MaxHealth);
 
-            // call OnDamage action
             float trueDamageAmount = healthBefore - CurrentHealth;
             if (trueDamageAmount > 0f)
             {
-                OnDamaged?.Invoke(trueDamageAmount, damageSource);
+                OnDamaged?.Invoke(trueDamageAmount, null);
             }
 
             HandleDeath();
         }
 
+        // --- KILL ---
         public void Kill()
         {
+            if (m_PhotonView != null && PhotonNetwork.IsConnected)
+            {
+                m_PhotonView.RPC(nameof(RPC_Kill), RpcTarget.All);
+            }
+            else
+            {
+                RPC_Kill();
+            }
+        }
+
+        [PunRPC]
+        private void RPC_Kill()
+        {
             CurrentHealth = 0f;
-
-            // call OnDamage action
             OnDamaged?.Invoke(MaxHealth, null);
-
             HandleDeath();
         }
 
@@ -76,7 +122,6 @@ namespace Unity.FPS.Game
             if (m_IsDead)
                 return;
 
-            // call OnDie action
             if (CurrentHealth <= 0f)
             {
                 m_IsDead = true;

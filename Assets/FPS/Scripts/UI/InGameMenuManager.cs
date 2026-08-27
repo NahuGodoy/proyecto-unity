@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Photon.Pun; // Para verificar el estado de red
 
 namespace Unity.FPS.UI
 {
@@ -33,51 +34,56 @@ namespace Unity.FPS.UI
         PlayerInputHandler m_PlayerInputsHandler;
         Health m_PlayerHealth;
         FramerateCounter m_FramerateCounter;
-        
+
         private InputAction m_SubmitAction;
         private InputAction m_CancelAction;
         private InputAction m_NavigateAction;
         private InputAction m_MenuAction;
 
+        private bool m_IsBound = false;
+
         void Start()
         {
-            m_PlayerInputsHandler = FindAnyObjectByType<PlayerInputHandler>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerInputHandler, InGameMenuManager>(m_PlayerInputsHandler,
-                this);
-
-            m_PlayerHealth = m_PlayerInputsHandler.GetComponent<Health>();
-            DebugUtility.HandleErrorIfNullGetComponent<Health, InGameMenuManager>(m_PlayerHealth, this, gameObject);
-
-            m_FramerateCounter = FindAnyObjectByType<FramerateCounter>();
-            DebugUtility.HandleErrorIfNullFindObject<FramerateCounter, InGameMenuManager>(m_FramerateCounter, this);
-
             MenuRoot.SetActive(false);
 
-            LookSensitivitySlider.value = m_PlayerInputsHandler.LookSensitivity;
-            LookSensitivitySlider.onValueChanged.AddListener(OnMouseSensitivityChanged);
+            m_FramerateCounter = FindAnyObjectByType<FramerateCounter>();
 
-            ShadowsToggle.isOn = QualitySettings.shadows != ShadowQuality.Disable;
-            ShadowsToggle.onValueChanged.AddListener(OnShadowsChanged);
+            // Configuración inicial independiente del jugador
+            if (ShadowsToggle != null)
+            {
+                ShadowsToggle.isOn = QualitySettings.shadows != ShadowQuality.Disable;
+                ShadowsToggle.onValueChanged.AddListener(OnShadowsChanged);
+            }
 
-            InvincibilityToggle.isOn = m_PlayerHealth.Invincible;
-            InvincibilityToggle.onValueChanged.AddListener(OnInvincibilityChanged);
+            if (FramerateToggle != null && m_FramerateCounter != null)
+            {
+                FramerateToggle.isOn = m_FramerateCounter.UIText.gameObject.activeSelf;
+                FramerateToggle.onValueChanged.AddListener(OnFramerateCounterChanged);
+            }
 
-            FramerateToggle.isOn = m_FramerateCounter.UIText.gameObject.activeSelf;
-            FramerateToggle.onValueChanged.AddListener(OnFramerateCounterChanged);
-
+            // Input System Actions
             m_SubmitAction = InputSystem.actions.FindAction("UI/Submit");
             m_CancelAction = InputSystem.actions.FindAction("UI/Cancel");
             m_NavigateAction = InputSystem.actions.FindAction("UI/Navigate");
             m_MenuAction = InputSystem.actions.FindAction("UI/Menu");
-            
-            m_SubmitAction.Enable();
-            m_CancelAction.Enable();
-            m_NavigateAction.Enable();
-            m_MenuAction.Enable();
+
+            m_SubmitAction?.Enable();
+            m_CancelAction?.Enable();
+            m_NavigateAction?.Enable();
+            m_MenuAction?.Enable();
+
+            // Intentar enlazar con el personaje local al iniciar
+            TryBindLocalPlayer();
         }
 
         void Update()
         {
+            // Si el jugador aún no se ha instanciado en red, reintentamos el enlace
+            if (!m_IsBound)
+            {
+                TryBindLocalPlayer();
+            }
+
             // Lock cursor when clicking outside of menu
             if (!MenuRoot.activeSelf && Mouse.current.leftButton.wasPressedThisFrame)
             {
@@ -91,8 +97,8 @@ namespace Unity.FPS.UI
                 Cursor.visible = true;
             }
 
-            if (m_MenuAction.WasPressedThisFrame()
-                || (MenuRoot.activeSelf && m_CancelAction.WasPressedThisFrame()))
+            if ((m_MenuAction != null && m_MenuAction.WasPressedThisFrame())
+                || (MenuRoot.activeSelf && m_CancelAction != null && m_CancelAction.WasPressedThisFrame()))
             {
                 if (ControlImage.activeSelf)
                 {
@@ -101,16 +107,47 @@ namespace Unity.FPS.UI
                 }
 
                 SetPauseMenuActivation(!MenuRoot.activeSelf);
-
             }
 
-            if (m_NavigateAction.ReadValue<Vector2>().y != 0)
+            if (m_NavigateAction != null && m_NavigateAction.ReadValue<Vector2>().y != 0)
             {
                 if (EventSystem.current.currentSelectedGameObject == null)
                 {
                     EventSystem.current.SetSelectedGameObject(null);
-                    LookSensitivitySlider.Select();
+                    if (LookSensitivitySlider != null)
+                        LookSensitivitySlider.Select();
                 }
+            }
+        }
+
+        private void TryBindLocalPlayer()
+        {
+            PlayerCharacterController localPlayer = NetworkUtils.GetLocalPlayer();
+
+            if (localPlayer == null) return;
+
+            m_PlayerInputsHandler = localPlayer.GetComponent<PlayerInputHandler>();
+            m_PlayerHealth = localPlayer.GetComponent<Health>();
+
+            if (m_PlayerInputsHandler != null && m_PlayerHealth != null)
+            {
+                // Enlazar sensibilidad de mouse
+                if (LookSensitivitySlider != null)
+                {
+                    LookSensitivitySlider.value = m_PlayerInputsHandler.LookSensitivity;
+                    LookSensitivitySlider.onValueChanged.RemoveAllListeners();
+                    LookSensitivitySlider.onValueChanged.AddListener(OnMouseSensitivityChanged);
+                }
+
+                // Enlazar modo invencible
+                if (InvincibilityToggle != null)
+                {
+                    InvincibilityToggle.isOn = m_PlayerHealth.Invincible;
+                    InvincibilityToggle.onValueChanged.RemoveAllListeners();
+                    InvincibilityToggle.onValueChanged.AddListener(OnInvincibilityChanged);
+                }
+
+                m_IsBound = true;
             }
         }
 
@@ -127,9 +164,14 @@ namespace Unity.FPS.UI
             {
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-                Time.timeScale = 0f;
-                AudioUtility.SetMasterVolume(VolumeWhenMenuOpen);
 
+                // Solo pausamos el juego si estamos en modo Singleplayer/Offline
+                if (!PhotonNetwork.IsConnected || PhotonNetwork.OfflineMode)
+                {
+                    Time.timeScale = 0f;
+                }
+
+                AudioUtility.SetMasterVolume(VolumeWhenMenuOpen);
                 EventSystem.current.SetSelectedGameObject(null);
             }
             else
@@ -137,14 +179,14 @@ namespace Unity.FPS.UI
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
                 Time.timeScale = 1f;
-                AudioUtility.SetMasterVolume(1);
+                AudioUtility.SetMasterVolume(1f);
             }
-
         }
 
         void OnMouseSensitivityChanged(float newValue)
         {
-            m_PlayerInputsHandler.LookSensitivity = newValue;
+            if (m_PlayerInputsHandler != null)
+                m_PlayerInputsHandler.LookSensitivity = newValue;
         }
 
         void OnShadowsChanged(bool newValue)
@@ -154,12 +196,14 @@ namespace Unity.FPS.UI
 
         void OnInvincibilityChanged(bool newValue)
         {
-            m_PlayerHealth.Invincible = newValue;
+            if (m_PlayerHealth != null)
+                m_PlayerHealth.Invincible = newValue;
         }
 
         void OnFramerateCounterChanged(bool newValue)
         {
-            m_FramerateCounter.UIText.gameObject.SetActive(newValue);
+            if (m_FramerateCounter != null)
+                m_FramerateCounter.UIText.gameObject.SetActive(newValue);
         }
 
         public void OnShowControlButtonClicked(bool show)
