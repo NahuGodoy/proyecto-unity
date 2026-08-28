@@ -1,5 +1,6 @@
 ﻿using Unity.FPS.Game;
 using UnityEngine;
+using Photon.Pun;
 
 namespace Unity.FPS.Gameplay
 {
@@ -52,7 +53,12 @@ namespace Unity.FPS.Gameplay
         {
             PlayerCharacterController pickingPlayer = other.GetComponent<PlayerCharacterController>();
 
-            if (pickingPlayer != null)
+            if (pickingPlayer == null)
+                return;
+
+            PhotonView pv = pickingPlayer.GetComponent<PhotonView>();
+
+            if (pv == null || !PhotonNetwork.IsConnected || pv.IsMine)
             {
                 OnPicked(pickingPlayer);
 
@@ -79,7 +85,7 @@ namespace Unity.FPS.Gameplay
 
             if (PickupVfxPrefab)
             {
-                var pickupVfxInstance = Instantiate(PickupVfxPrefab, transform.position, Quaternion.identity);
+                Instantiate(PickupVfxPrefab, transform.position, Quaternion.identity);
             }
 
             m_HasPlayedFeedback = true;

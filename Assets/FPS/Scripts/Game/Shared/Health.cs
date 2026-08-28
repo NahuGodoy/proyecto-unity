@@ -40,7 +40,6 @@ namespace Unity.FPS.Game
         {
             if (m_PhotonView != null && PhotonNetwork.IsConnected)
             {
-                // Enviar la orden de curación a todos los clientes por red
                 m_PhotonView.RPC(nameof(RPC_Heal), RpcTarget.All, healAmount);
             }
             else

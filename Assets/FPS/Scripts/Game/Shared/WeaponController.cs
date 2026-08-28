@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Photon.Pun;
 
 namespace Unity.FPS.Game
 {
@@ -162,6 +163,7 @@ namespace Unity.FPS.Game
         const string k_AnimAttackParameter = "Attack";
 
         private Queue<Rigidbody> m_PhysicalAmmoPool;
+        private PhotonView m_OwnerPhotonView;
 
         void Awake()
         {
@@ -196,10 +198,24 @@ namespace Unity.FPS.Game
             }
         }
 
+        void Start()
+        {
+            if (Owner != null)
+            {
+                m_OwnerPhotonView = Owner.GetComponent<PhotonView>();
+            }
+            else
+            {
+                m_OwnerPhotonView = GetComponentInParent<PhotonView>();
+            }
+        }        
+
         public void AddCarriablePhysicalBullets(int count) => m_CarriedPhysicalBullets = Mathf.Max(m_CarriedPhysicalBullets + count, MaxAmmo);
 
         void ShootShell()
         {
+            if (m_PhysicalAmmoPool == null || m_PhysicalAmmoPool.Count == 0) return;
+
             Rigidbody nextShell = m_PhysicalAmmoPool.Dequeue();
 
             nextShell.transform.position = EjectionPort.transform.position;
@@ -213,7 +229,6 @@ namespace Unity.FPS.Game
         }
 
         void PlaySFX(AudioClip sfx) => AudioUtility.CreateSFX(sfx, transform.position, AudioUtility.AudioGroups.WeaponShoot, 0.0f);
-
 
         void Reload()
         {
@@ -236,6 +251,10 @@ namespace Unity.FPS.Game
 
         void Update()
         {
+            if (m_OwnerPhotonView == null && Owner != null)
+            {
+                m_OwnerPhotonView = Owner.GetComponent<PhotonView>();
+            }
             UpdateAmmo();
             UpdateCharge();
             UpdateContinuousShootSound();
@@ -249,6 +268,9 @@ namespace Unity.FPS.Game
 
         void UpdateAmmo()
         {
+            if (m_OwnerPhotonView != null && PhotonNetwork.IsConnected && !m_OwnerPhotonView.IsMine)
+                return;
+
             if (AutomaticReload && m_LastTimeShot + AmmoReloadDelay < Time.time && m_CurrentAmmo < MaxAmmo && !IsCharging)
             {
                 // reloads weapon over time
@@ -276,6 +298,9 @@ namespace Unity.FPS.Game
 
         void UpdateCharge()
         {
+            if (m_OwnerPhotonView != null && PhotonNetwork.IsConnected && !m_OwnerPhotonView.IsMine)
+                return;
+
             if (IsCharging)
             {
                 if (CurrentCharge < 1f)
@@ -352,6 +377,9 @@ namespace Unity.FPS.Game
 
         public bool HandleShootInputs(bool inputDown, bool inputHeld, bool inputUp)
         {
+            if (m_OwnerPhotonView != null && PhotonNetwork.IsConnected && !m_OwnerPhotonView.IsMine)
+                return false;
+
             m_WantsToShoot = inputDown || inputHeld;
             switch (ShootType)
             {
@@ -443,7 +471,6 @@ namespace Unity.FPS.Game
                 ? Mathf.CeilToInt(CurrentCharge * BulletsPerShot)
                 : BulletsPerShot;
 
-            // spawn all bullets with random direction
             for (int i = 0; i < bulletsPerShotFinal; i++)
             {
                 Vector3 shotDirection = GetShotDirectionWithinSpread(WeaponMuzzle);
@@ -452,12 +479,26 @@ namespace Unity.FPS.Game
                 newProjectile.Shoot(this);
             }
 
-            // muzzle flash
+            ExecuteShootFX();
+
+            m_LastTimeShot = Time.time;
+
+            OnShoot?.Invoke();
+            OnShootProcessed?.Invoke();
+
+            if (PhotonNetwork.IsConnected && m_OwnerPhotonView != null && m_OwnerPhotonView.IsMine)
+            {
+                m_OwnerPhotonView.RPC("RPC_ShootFX", RpcTarget.Others);
+            }
+        }
+
+        public void ExecuteShootFX()
+        {
+            // Muzzle Flash
             if (MuzzleFlashPrefab != null)
             {
                 GameObject muzzleFlashInstance = Instantiate(MuzzleFlashPrefab, WeaponMuzzle.position,
                     WeaponMuzzle.rotation, WeaponMuzzle.transform);
-                // Unparent the muzzleFlashInstance
                 if (UnparentMuzzleFlash)
                 {
                     muzzleFlashInstance.transform.SetParent(null);
@@ -472,22 +513,15 @@ namespace Unity.FPS.Game
                 m_CarriedPhysicalBullets--;
             }
 
-            m_LastTimeShot = Time.time;
-
-            // play shoot SFX
             if (ShootSfx && !UseContinuousShootSound)
             {
                 m_ShootAudioSource.PlayOneShot(ShootSfx);
             }
 
-            // Trigger attack animation if there is any
             if (WeaponAnimator)
             {
                 WeaponAnimator.SetTrigger(k_AnimAttackParameter);
             }
-
-            OnShoot?.Invoke();
-            OnShootProcessed?.Invoke();
         }
 
         public Vector3 GetShotDirectionWithinSpread(Transform shootTransform)

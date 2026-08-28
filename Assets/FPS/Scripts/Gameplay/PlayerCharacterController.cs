@@ -175,6 +175,13 @@ namespace Unity.FPS.Gameplay
                 // Salimos para no ejecutar la lógica de inicialización del jugador local
                 return;
             }
+            if (PlayerCamera != null)
+                PlayerCamera.gameObject.SetActive(true);
+
+            AudioListener localAudioListener = GetComponentInChildren<AudioListener>();
+            if (localAudioListener != null)
+                localAudioListener.enabled = true;
+
 
             // -------------------------------------------------------------
             // 2. INICIALIZACIÓN NORMAL PARA EL JUGADOR LOCAL (photonView.IsMine)
@@ -527,6 +534,19 @@ namespace Unity.FPS.Gameplay
 
             IsCrouching = crouched;
             return true;
+        }
+        [PunRPC]
+        public void RPC_ShootFX()
+        {
+            PlayerWeaponsManager weaponsManager = GetComponent<PlayerWeaponsManager>();
+            if (weaponsManager != null)
+            {
+                WeaponController activeWeapon = weaponsManager.GetActiveWeapon();
+                if (activeWeapon != null)
+                {
+                    activeWeapon.ExecuteShootFX();
+                }
+            }
         }
     }
 }
