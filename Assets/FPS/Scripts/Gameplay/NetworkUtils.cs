@@ -28,19 +28,16 @@ namespace Unity.FPS.Gameplay
         }
         public static void PickupDestroy(GameObject target)
         {
-            if (target==null)
+            if (target == null)
                 return;
 
             PhotonView pickupPV = target.GetComponent<PhotonView>();
+
             if (pickupPV != null && PhotonNetwork.IsConnected)
             {
                 if (pickupPV.IsMine || PhotonNetwork.IsMasterClient)
                 {
                     PhotonNetwork.Destroy(target);
-                }
-                else
-                {
-                    target.SetActive(false);
                 }
             }
             else
