@@ -45,6 +45,7 @@ MonoBehaviour:
   - RPC_TryUnlock
   - RPC_ShootFX
   - RPC_SyncWeaponSwitch
+  - RequestDestroyPickup
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 0
