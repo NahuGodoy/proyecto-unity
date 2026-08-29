@@ -9,14 +9,18 @@ namespace Unity.FPS.Gameplay
         {
             PlayerCharacterController[] players = Object.FindObjectsByType<PlayerCharacterController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
+            // Offline: return the first found player (single-player mode)
+            if (!PhotonNetwork.IsConnected)
+            {
+                return players != null && players.Length > 0 ? players[0] : null;
+            }
+
+            // Online: find the player whose PhotonView belongs to this client
             foreach (var player in players)
             {
                 PhotonView pv = player.GetComponent<PhotonView>();
-
-                if (pv == null || !PhotonNetwork.IsConnected || pv.IsMine)
-                {
+                if (pv != null && pv.IsMine)
                     return player;
-                }
             }
 
             return null;
@@ -52,7 +56,7 @@ namespace Unity.FPS.Gameplay
                 if (playerPV != null)
                 {
                     // Notificamos a todos que oculten este pickup especificando nombre y posición
-                    playerPV.RPC("RPC_DisablePickup", RpcTarget.AllBuffered, target.name, target.transform.position);
+                    playerPV.RPC(nameof(PlayerCharacterController.RPC_DisablePickup), RpcTarget.AllBuffered, target.name, target.transform.position);
                 }
             }
         }

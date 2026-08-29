@@ -497,12 +497,16 @@ namespace Unity.FPS.Gameplay
                     weaponInstance.ShowWeapon(false);
 
                     // Assign the first person layer to the weapon
-                    int layerIndex =
-                        Mathf.RoundToInt(Mathf.Log(FpsWeaponLayer.value,
-                            2)); // This function converts a layermask to a layer index
+                    // Assign the appropriate layer: for local player use FPS weapon layer, for remote players use default
+                    int targetLayer = 0; // default layer
+                    if (photonView != null && PhotonNetwork.IsConnected && photonView.IsMine)
+                    {
+                        targetLayer = Mathf.RoundToInt(Mathf.Log(FpsWeaponLayer.value, 2));
+                    }
+
                     foreach (Transform t in weaponInstance.gameObject.GetComponentsInChildren<Transform>(true))
                     {
-                        t.gameObject.layer = layerIndex;
+                        t.gameObject.layer = targetLayer;
                     }
 
                     m_WeaponSlots[i] = weaponInstance;

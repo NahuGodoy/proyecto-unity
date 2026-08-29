@@ -46,6 +46,8 @@ MonoBehaviour:
   - RPC_ShootFX
   - RPC_SyncWeaponSwitch
   - RequestDestroyPickup
+  - RPC_DisablePickup
+  - RPC_Init
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 0

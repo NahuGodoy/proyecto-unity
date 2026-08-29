@@ -29,6 +29,7 @@ namespace Unity.FPS.Game
     [RequireComponent(typeof(AudioSource))]
     public class WeaponController : MonoBehaviour
     {
+        const string RPC_ShootFX_METHOD = "RPC_ShootFX";
         [Header("Information")] [Tooltip("The name that will be displayed in the UI for this weapon")]
         public string WeaponName;
 
@@ -474,9 +475,43 @@ namespace Unity.FPS.Game
             for (int i = 0; i < bulletsPerShotFinal; i++)
             {
                 Vector3 shotDirection = GetShotDirectionWithinSpread(WeaponMuzzle);
-                ProjectileBase newProjectile = Instantiate(ProjectilePrefab, WeaponMuzzle.position,
-                    Quaternion.LookRotation(shotDirection));
-                newProjectile.Shoot(this);
+
+                ProjectileBase newProjectile = null;
+
+                // If online and we are the owner, spawn the projectile across the network so everyone sees it
+                if (Photon.Pun.PhotonNetwork.IsConnected && m_OwnerPhotonView != null && m_OwnerPhotonView.IsMine)
+                {
+                    string prefabName = ProjectilePrefab.gameObject.name;
+
+                    int ownerViewId = 0;
+                    if (Owner != null)
+                    {
+                        PhotonView ownerPV = Owner.GetComponent<PhotonView>();
+                        if (ownerPV != null)
+                            ownerViewId = ownerPV.ViewID;
+                    }
+
+                    object[] instantiationData = new object[]
+                    {
+                        ownerViewId,
+                        shotDirection,
+                        MuzzleWorldVelocity,
+                        CurrentCharge,
+                        WeaponMuzzle.position
+                    };
+
+                    Quaternion rot = shotDirection.sqrMagnitude > 0f ? Quaternion.LookRotation(shotDirection) : Quaternion.identity;
+                    GameObject netObj = Photon.Pun.PhotonNetwork.Instantiate(prefabName, WeaponMuzzle.position, rot, 0, instantiationData);
+                    if (netObj != null)
+                        newProjectile = netObj.GetComponent<ProjectileBase>();
+                    // Do not call Shoot() here: instantiation data will be applied on all clients in ProjectileBase.Start()
+                }
+                else
+                {
+                    Quaternion rotLocal = shotDirection.sqrMagnitude > 0f ? Quaternion.LookRotation(shotDirection) : Quaternion.identity;
+                    newProjectile = Instantiate(ProjectilePrefab, WeaponMuzzle.position, rotLocal);
+                    newProjectile.Shoot(this);
+                }
             }
 
             ExecuteShootFX();
@@ -488,7 +523,7 @@ namespace Unity.FPS.Game
 
             if (PhotonNetwork.IsConnected && m_OwnerPhotonView != null && m_OwnerPhotonView.IsMine)
             {
-                m_OwnerPhotonView.RPC("RPC_ShootFX", RpcTarget.Others);
+                m_OwnerPhotonView.RPC(RPC_ShootFX_METHOD, RpcTarget.Others);
             }
         }
 

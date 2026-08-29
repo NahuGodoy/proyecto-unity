@@ -12,18 +12,54 @@ namespace Unity.FPS.UI
         [Tooltip("Prefab for the notifications")]
         public GameObject NotificationPrefab;
 
+        PlayerWeaponsManager m_PlayerWeaponsManager;
+        Jetpack m_Jetpack;
+
         void Awake()
         {
-            PlayerWeaponsManager playerWeaponsManager = FindAnyObjectByType<PlayerWeaponsManager>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, NotificationHUDManager>(playerWeaponsManager,
-                this);
-            playerWeaponsManager.OnAddedWeapon += OnPickupWeapon;
-
-            Jetpack jetpack = FindAnyObjectByType<Jetpack>();
-            DebugUtility.HandleErrorIfNullFindObject<Jetpack, NotificationHUDManager>(jetpack, this);
-            jetpack.OnUnlockJetpack += OnUnlockJetpack;
-
             EventManager.AddListener<ObjectiveUpdateEvent>(OnObjectiveUpdateEvent);
+        }
+
+        void Start()
+        {
+            TryBindLocalPlayer();
+        }
+
+        void Update()
+        {
+            // Si el jugador local aún no se ha vinculado (por tardar en instanciarse por red), reintentamos en Update
+            if (m_PlayerWeaponsManager == null || m_Jetpack == null)
+            {
+                TryBindLocalPlayer();
+            }
+        }
+
+        private void TryBindLocalPlayer()
+        {
+            PlayerCharacterController localPlayer = NetworkUtils.GetLocalPlayer();
+
+            if (localPlayer != null)
+            {
+                // Vinculación de PlayerWeaponsManager
+                if (m_PlayerWeaponsManager == null)
+                {
+                    m_PlayerWeaponsManager = localPlayer.GetComponent<PlayerWeaponsManager>();
+                    if (m_PlayerWeaponsManager != null)
+                    {
+                        m_PlayerWeaponsManager.OnAddedWeapon += OnPickupWeapon;
+                    }
+                }
+
+                // Vinculación de Jetpack
+                if (m_Jetpack == null)
+                {
+                    m_Jetpack = localPlayer.GetComponent<Jetpack>();
+                    if (m_Jetpack != null)
+                    {
+                        m_Jetpack.OnUnlockJetpack += OnUnlockJetpack;
+                    }
+                }
+            }
         }
 
         void OnObjectiveUpdateEvent(ObjectiveUpdateEvent evt)
@@ -58,6 +94,17 @@ namespace Unity.FPS.UI
         void OnDestroy()
         {
             EventManager.RemoveListener<ObjectiveUpdateEvent>(OnObjectiveUpdateEvent);
+
+            // Desvinculamos los eventos para prevenir memory leaks
+            if (m_PlayerWeaponsManager != null)
+            {
+                m_PlayerWeaponsManager.OnAddedWeapon -= OnPickupWeapon;
+            }
+
+            if (m_Jetpack != null)
+            {
+                m_Jetpack.OnUnlockJetpack -= OnUnlockJetpack;
+            }
         }
     }
 }

@@ -58,7 +58,19 @@ namespace Unity.FPS.Gameplay
 
             PhotonView pv = pickingPlayer.GetComponent<PhotonView>();
 
-            if (pv == null || !PhotonNetwork.IsConnected || pv.IsMine)
+            // Offline: accept any pickup interaction
+            if (!PhotonNetwork.IsConnected)
+            {
+                OnPicked(pickingPlayer);
+
+                PickupEvent evt = Events.PickupEvent;
+                evt.Pickup = gameObject;
+                EventManager.Broadcast(evt);
+                return;
+            }
+
+            // Online: only the local player's PhotonView should trigger the pickup
+            if (pv != null && pv.IsMine)
             {
                 OnPicked(pickingPlayer);
 

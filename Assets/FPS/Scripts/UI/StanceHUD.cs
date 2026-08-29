@@ -19,10 +19,48 @@ namespace Unity.FPS.UI
         void Start()
         {
             PlayerCharacterController character = FindAnyObjectByType<PlayerCharacterController>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerCharacterController, StanceHUD>(character, this);
-            character.OnStanceChanged += OnStanceChanged;
+            if (character == null)
+            {
+                DebugUtility.HandleErrorIfNullFindObject<PlayerCharacterController, StanceHUD>(character, this);
+                StartCoroutine(WaitForCharacterAndInit());
+                return;
+            }
 
+            InitWithCharacter(character);
+        }
+
+        System.Collections.IEnumerator WaitForCharacterAndInit()
+        {
+            float timeout = 5f;
+            float start = Time.time;
+            PlayerCharacterController character = null;
+            while (Time.time - start < timeout)
+            {
+                character = FindAnyObjectByType<PlayerCharacterController>();
+                if (character != null)
+                    break;
+                yield return null;
+            }
+
+            if (character == null)
+                yield break;
+
+            InitWithCharacter(character);
+        }
+
+        void InitWithCharacter(PlayerCharacterController character)
+        {
+            character.OnStanceChanged += OnStanceChanged;
             OnStanceChanged(character.IsCrouching);
+        }
+
+        void OnDestroy()
+        {
+            PlayerCharacterController character = FindAnyObjectByType<PlayerCharacterController>();
+            if (character != null)
+            {
+                character.OnStanceChanged -= OnStanceChanged;
+            }
         }
 
         void OnStanceChanged(bool crouched)

@@ -19,9 +19,39 @@ namespace Unity.FPS.UI
         void Start()
         {
             m_PlayerWeaponsManager = FindAnyObjectByType<PlayerWeaponsManager>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, WeaponHUDManager>(m_PlayerWeaponsManager,
-                this);
+            if (m_PlayerWeaponsManager == null)
+            {
+                DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, WeaponHUDManager>(m_PlayerWeaponsManager,
+                    this);
+                StartCoroutine(WaitForManagerAndInit());
+                return;
+            }
 
+            InitWithManager();
+        }
+
+        System.Collections.IEnumerator WaitForManagerAndInit()
+        {
+            float timeout = 5f;
+            float start = Time.time;
+            PlayerWeaponsManager mgr = null;
+            while (Time.time - start < timeout)
+            {
+                mgr = FindAnyObjectByType<PlayerWeaponsManager>();
+                if (mgr != null)
+                    break;
+                yield return null;
+            }
+
+            if (mgr == null)
+                yield break;
+
+            m_PlayerWeaponsManager = mgr;
+            InitWithManager();
+        }
+
+        void InitWithManager()
+        {
             WeaponController activeWeapon = m_PlayerWeaponsManager.GetActiveWeapon();
             if (activeWeapon)
             {
@@ -32,6 +62,16 @@ namespace Unity.FPS.UI
             m_PlayerWeaponsManager.OnAddedWeapon += AddWeapon;
             m_PlayerWeaponsManager.OnRemovedWeapon += RemoveWeapon;
             m_PlayerWeaponsManager.OnSwitchedToWeapon += ChangeWeapon;
+        }
+
+        void OnDestroy()
+        {
+            if (m_PlayerWeaponsManager != null)
+            {
+                m_PlayerWeaponsManager.OnAddedWeapon -= AddWeapon;
+                m_PlayerWeaponsManager.OnRemovedWeapon -= RemoveWeapon;
+                m_PlayerWeaponsManager.OnSwitchedToWeapon -= ChangeWeapon;
+            }
         }
 
         void AddWeapon(WeaponController newWeapon, int weaponIndex)
