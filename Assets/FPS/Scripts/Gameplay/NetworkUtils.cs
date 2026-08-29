@@ -5,16 +5,9 @@ namespace Unity.FPS.Gameplay
 {
     public static class NetworkUtils
     {
-        /// <summary>
-        /// Busca y devuelve el PlayerCharacterController
-        /// del jugador local.
-        /// </summary>
         public static PlayerCharacterController GetLocalPlayer()
         {
-            PlayerCharacterController[] players =
-                Object.FindObjectsByType<PlayerCharacterController>(
-                    FindObjectsInactive.Exclude
-                );
+            PlayerCharacterController[] players = Object.FindObjectsByType<PlayerCharacterController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
             foreach (var player in players)
             {
@@ -31,31 +24,36 @@ namespace Unity.FPS.Gameplay
 
         public static void PickupDestroy(GameObject target)
         {
-            if (target == null)
-                return;
+            if (target == null) return;
 
-            NetworkPickup networkPickup =
-                target.GetComponent<NetworkPickup>();
-
-            if (networkPickup != null)
+            // Modo Offline
+            if (!PhotonNetwork.IsConnected)
             {
-                networkPickup.DestroyPickup();
+                Object.Destroy(target);
                 return;
             }
 
-            // Fallback para objetos que no utilizan NetworkPickup
-            PhotonView pickupPV = target.GetComponent<PhotonView>();
-
-            if (pickupPV != null && PhotonNetwork.IsConnected)
+            // Si el objeto tiene un PhotonView propio
+            PhotonView targetPV = target.GetComponent<PhotonView>();
+            if (targetPV != null)
             {
-                if (PhotonNetwork.IsMasterClient)
+                if (targetPV.IsMine || PhotonNetwork.IsMasterClient)
                 {
                     PhotonNetwork.Destroy(target);
                 }
+                return;
             }
-            else
+
+            // Si es un pickup de la escena sin PhotonView:
+            PlayerCharacterController localPlayer = GetLocalPlayer();
+            if (localPlayer != null)
             {
-                Object.Destroy(target);
+                PhotonView playerPV = localPlayer.GetComponent<PhotonView>();
+                if (playerPV != null)
+                {
+                    // Notificamos a todos que oculten este pickup especificando nombre y posición
+                    playerPV.RPC("RPC_DisablePickup", RpcTarget.AllBuffered, target.name, target.transform.position);
+                }
             }
         }
     }
