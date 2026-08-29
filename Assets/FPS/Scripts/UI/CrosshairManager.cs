@@ -20,18 +20,35 @@ namespace Unity.FPS.UI
 
         void Start()
         {
-            m_WeaponsManager = FindAnyObjectByType<PlayerWeaponsManager>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, CrosshairManager>(m_WeaponsManager, this);
-
-            OnWeaponChanged(m_WeaponsManager.GetActiveWeapon());
-
-            m_WeaponsManager.OnSwitchedToWeapon += OnWeaponChanged;
+            TryBindPlayer();
         }
 
         void Update()
         {
+            if (m_WeaponsManager == null)
+            {
+                TryBindPlayer();
+                return;
+            }
             UpdateCrosshairPointingAtEnemy(false);
             m_WasPointingAtEnemy = m_WeaponsManager.IsPointingAtEnemy;
+        }
+
+        private void TryBindPlayer()
+        {
+            PlayerCharacterController localPlayer = NetworkUtils.GetLocalPlayer();
+
+            if (localPlayer != null)
+            {
+                m_WeaponsManager = localPlayer.GetComponent<PlayerWeaponsManager>();
+
+                if (m_WeaponsManager != null)
+                {
+                    OnWeaponChanged(m_WeaponsManager.GetActiveWeapon());
+
+                    m_WeaponsManager.OnSwitchedToWeapon += OnWeaponChanged;
+                }
+            }
         }
 
         void UpdateCrosshairPointingAtEnemy(bool force)
@@ -84,6 +101,13 @@ namespace Unity.FPS.UI
             }
 
             UpdateCrosshairPointingAtEnemy(true);
+        }
+        void OnDestroy()
+        {
+            if (m_WeaponsManager != null)
+            {
+                m_WeaponsManager.OnSwitchedToWeapon -= OnWeaponChanged;
+            }
         }
     }
 }

@@ -2,11 +2,13 @@
 using Unity.FPS.Game;
 using UnityEngine;
 using UnityEngine.Events;
+using Photon.Pun;
 
 namespace Unity.FPS.Gameplay
 {
     [RequireComponent(typeof(PlayerInputHandler))]
-    public class PlayerWeaponsManager : MonoBehaviour
+    [RequireComponent(typeof(PhotonView))]
+    public class PlayerWeaponsManager : MonoBehaviourPun
     {
         public enum WeaponSwitchState
         {
@@ -106,7 +108,15 @@ namespace Unity.FPS.Gameplay
             DebugUtility.HandleErrorIfNullGetComponent<PlayerCharacterController, PlayerWeaponsManager>(
                 m_PlayerCharacterController, this, gameObject);
 
-            SetFov(DefaultFov);
+            if (photonView != null && PhotonNetwork.IsConnected && !photonView.IsMine)
+            {
+                if (WeaponCamera != null)
+                    WeaponCamera.gameObject.SetActive(false);
+            }
+            else
+            {
+                SetFov(DefaultFov);
+            }
 
             OnSwitchedToWeapon += OnWeaponSwitched;
 
@@ -121,7 +131,10 @@ namespace Unity.FPS.Gameplay
 
         void Update()
         {
-            // shoot handling
+            if (photonView != null && PhotonNetwork.IsConnected && !photonView.IsMine)
+                return;
+
+            
             WeaponController activeWeapon = GetActiveWeapon();
 
             if (activeWeapon != null && activeWeapon.IsReloading)
@@ -193,21 +206,30 @@ namespace Unity.FPS.Gameplay
         // Update various animated features in LateUpdate because it needs to override the animated arm position
         void LateUpdate()
         {
+            if (photonView != null && PhotonNetwork.IsConnected && !photonView.IsMine)
+                return;
+            
             UpdateWeaponAiming();
             UpdateWeaponBob();
             UpdateWeaponRecoil();
             UpdateWeaponSwitching();
 
             // Set final weapon socket position based on all the combined animation influences
-            WeaponParentSocket.localPosition =
-                m_WeaponMainLocalPosition + m_WeaponBobLocalPosition + m_WeaponRecoilLocalPosition;
+            if (WeaponParentSocket != null)
+            {
+                WeaponParentSocket.localPosition =
+                    m_WeaponMainLocalPosition + m_WeaponBobLocalPosition + m_WeaponRecoilLocalPosition;
+            }
         }
 
         // Sets the FOV of the main camera and the weapon camera simultaneously
         public void SetFov(float fov)
         {
-            m_PlayerCharacterController.PlayerCamera.fieldOfView = fov;
-            WeaponCamera.fieldOfView = fov * WeaponFovMultiplier;
+            if (m_PlayerCharacterController.PlayerCamera != null)
+                m_PlayerCharacterController.PlayerCamera.fieldOfView = fov;
+
+            if (WeaponCamera != null)
+                WeaponCamera.fieldOfView = fov * WeaponFovMultiplier;
         }
 
         // Iterate on all weapon slots to find the next valid weapon to switch to
@@ -262,6 +284,31 @@ namespace Unity.FPS.Gameplay
                 {
                     m_WeaponSwitchState = WeaponSwitchState.PutDownPrevious;
                 }
+                if (PhotonNetwork.IsConnected && photonView != null && photonView.IsMine)
+                {
+                    photonView.RPC(nameof(RPC_SyncWeaponSwitch), RpcTarget.Others, newWeaponIndex);
+                }
+            }
+        }
+
+        [PunRPC]
+        void RPC_SyncWeaponSwitch(int weaponIndex)
+        {
+            ActiveWeaponIndex = weaponIndex;
+            WeaponController newWeapon = GetWeaponAtSlotIndex(weaponIndex);
+
+            // Ocultar todas las armas de los slots remotos excepto la activa
+            for (int i = 0; i < m_WeaponSlots.Length; i++)
+            {
+                if (m_WeaponSlots[i] != null)
+                {
+                    m_WeaponSlots[i].ShowWeapon(i == weaponIndex);
+                }
+            }
+
+            if (OnSwitchedToWeapon != null && newWeapon != null)
+            {
+                OnSwitchedToWeapon.Invoke(newWeapon);
             }
         }
 
@@ -450,12 +497,16 @@ namespace Unity.FPS.Gameplay
                     weaponInstance.ShowWeapon(false);
 
                     // Assign the first person layer to the weapon
-                    int layerIndex =
-                        Mathf.RoundToInt(Mathf.Log(FpsWeaponLayer.value,
-                            2)); // This function converts a layermask to a layer index
+                    // Assign the appropriate layer: for local player use FPS weapon layer, for remote players use default
+                    int targetLayer = 0; // default layer
+                    if (photonView != null && PhotonNetwork.IsConnected && photonView.IsMine)
+                    {
+                        targetLayer = Mathf.RoundToInt(Mathf.Log(FpsWeaponLayer.value, 2));
+                    }
+
                     foreach (Transform t in weaponInstance.gameObject.GetComponentsInChildren<Transform>(true))
                     {
-                        t.gameObject.layer = layerIndex;
+                        t.gameObject.layer = targetLayer;
                     }
 
                     m_WeaponSlots[i] = weaponInstance;

@@ -536,6 +536,7 @@ GameObject:
   - component: {fileID: 693771860}
   - component: {fileID: 693771859}
   - component: {fileID: 693771858}
+  - component: {fileID: 693771862}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -630,6 +631,19 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &693771862
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 693771857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2a4e8114cba3204eb4641799a9c1952, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: fps.UI::Unity.FPS.UI.MenuLauncher
+  SceneName: PruebaEscenario
 --- !u!1001 &720941772
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -702,6 +716,94 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1585764891}
   m_SourcePrefab: {fileID: 100100000, guid: a8f3eec2805fa754790b88b1e6b09a58, type: 3}
+--- !u!1001 &767481161
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 690385884575420255, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_Name
+      value: StarField
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 23.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218731657253409026, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3255664537135036008, guid: e8efe363ceaf6b8cfb7ea05a193165e2,
+        type: 3}
+      propertyPath: InitialModule.maxNumParticles
+      value: 500
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: e8efe363ceaf6b8cfb7ea05a193165e2, type: 3}
 --- !u!1001 &830982847
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1483,9 +1585,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1192292997}
-        m_TargetAssemblyTypeName: Unity.FPS.UI.LoadSceneButton, fps.UI
-        m_MethodName: LoadTargetScene
+      - m_Target: {fileID: 693771862}
+        m_TargetAssemblyTypeName: Unity.FPS.UI.MenuLauncher, fps.UI
+        m_MethodName: OnClickConnect
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2056,3 +2158,4 @@ SceneRoots:
   - {fileID: 278082816}
   - {fileID: 927544097}
   - {fileID: 443542376}
+  - {fileID: 767481161}

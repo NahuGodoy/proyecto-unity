@@ -1,5 +1,6 @@
 ﻿using Unity.FPS.Game;
 using UnityEngine;
+using Photon.Pun;
 
 namespace Unity.FPS.Gameplay
 {
@@ -52,7 +53,24 @@ namespace Unity.FPS.Gameplay
         {
             PlayerCharacterController pickingPlayer = other.GetComponent<PlayerCharacterController>();
 
-            if (pickingPlayer != null)
+            if (pickingPlayer == null)
+                return;
+
+            PhotonView pv = pickingPlayer.GetComponent<PhotonView>();
+
+            // Offline: accept any pickup interaction
+            if (!PhotonNetwork.IsConnected)
+            {
+                OnPicked(pickingPlayer);
+
+                PickupEvent evt = Events.PickupEvent;
+                evt.Pickup = gameObject;
+                EventManager.Broadcast(evt);
+                return;
+            }
+
+            // Online: only the local player's PhotonView should trigger the pickup
+            if (pv != null && pv.IsMine)
             {
                 OnPicked(pickingPlayer);
 
@@ -79,7 +97,7 @@ namespace Unity.FPS.Gameplay
 
             if (PickupVfxPrefab)
             {
-                var pickupVfxInstance = Instantiate(PickupVfxPrefab, transform.position, Quaternion.identity);
+                Instantiate(PickupVfxPrefab, transform.position, Quaternion.identity);
             }
 
             m_HasPlayedFeedback = true;

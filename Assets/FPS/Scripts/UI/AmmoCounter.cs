@@ -72,16 +72,33 @@ namespace Unity.FPS.UI
                 BulletCounter.text = weapon.GetCarriedPhysicalBullets().ToString();
 
             Reload.gameObject.SetActive(false);
-            m_PlayerWeaponsManager = FindAnyObjectByType<PlayerWeaponsManager>();
-            DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, AmmoCounter>(m_PlayerWeaponsManager, this);
+
+            TryBindPlayer();
 
             WeaponIndexText.text = (WeaponCounterIndex + 1).ToString();
 
             FillBarColorChange.Initialize(1f, m_Weapon.GetAmmoNeededToShoot());
         }
 
+        private void TryBindPlayer()
+        {
+            PlayerCharacterController localPlayer = NetworkUtils.GetLocalPlayer();
+            if (localPlayer != null)
+            {
+                m_PlayerWeaponsManager = localPlayer.GetComponent<PlayerWeaponsManager>();
+            }
+        }
+
         void Update()
         {
+            if (m_PlayerWeaponsManager == null)
+            {
+                TryBindPlayer();
+                if (m_PlayerWeaponsManager == null) return;
+            }
+
+            if (m_Weapon == null) return;
+
             float currenFillRatio = m_Weapon.CurrentAmmoRatio;
             AmmoFillImage.fillAmount = Mathf.Lerp(AmmoFillImage.fillAmount, currenFillRatio,
                 Time.deltaTime * AmmoFillMovementSharpness);
@@ -100,8 +117,7 @@ namespace Unity.FPS.UI
 
             Reload.gameObject.SetActive(m_Weapon.GetCarriedPhysicalBullets() > 0 && m_Weapon.GetCurrentAmmo() == 0 && m_Weapon.IsWeaponActive);
         }
-
-        void Destroy()
+        void OnDestroy()
         {
             EventManager.RemoveListener<AmmoPickupEvent>(OnAmmoPickup);
         }

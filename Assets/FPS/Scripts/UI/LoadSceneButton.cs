@@ -1,5 +1,6 @@
 ﻿using Unity.FPS.Game;
 using UnityEngine;
+using Photon.Pun;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -9,6 +10,7 @@ namespace Unity.FPS.UI
     public class LoadSceneButton : MonoBehaviour
     {
         public string SceneName = "";
+        public bool DisconnectBeforeLoad = false;
 
         private InputAction m_SubmitAction;
         
@@ -29,6 +31,11 @@ namespace Unity.FPS.UI
 
         public void LoadTargetScene()
         {
+            if (DisconnectBeforeLoad && PhotonNetwork.IsConnected)
+            {
+                PhotonNetwork.Disconnect();
+            }
+
             SceneManager.LoadScene(SceneName);
         }
     }
