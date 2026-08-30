@@ -1,10 +1,10 @@
 using UnityEngine;
 using Unity.FPS.Game;
+using System.Collections.Generic;
 
 public class Turret : MonoBehaviour
 {
     [Header("Configuracion")]
-    public Transform player;
     public Transform spawnPoint;
     public GameObject projectilePrefab;
     public float fireRate = 1.5f;
@@ -13,17 +13,18 @@ public class Turret : MonoBehaviour
     [Header("Destruccion")]
     public GameObject vfxDestruccion;
 
+    private Transform player; // el objetivo actual (el jugador más cercano)
+    private List<Transform> jugadoresConocidos = new List<Transform>();
+    private float proximaActualizacionLista = 0f;
+    private float intervaloActualizacionLista = 1f; // cada cuánto reescanea jugadores conectados
+
     private float nextFireTime;
     private Health health;
     private bool destruida = false;
 
     void Start()
     {
-        if (player == null)
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null) player = playerObj.transform;
-        }
+        ActualizarListaDeJugadores();
 
         health = GetComponent<Health>();
         if (health != null)
@@ -34,7 +35,18 @@ public class Turret : MonoBehaviour
 
     void Update()
     {
-        if (destruida || player == null) return;
+        if (destruida) return;
+
+        // Reescanea periódicamente por si se conecta/desconecta un jugador
+        if (Time.time >= proximaActualizacionLista)
+        {
+            ActualizarListaDeJugadores();
+            proximaActualizacionLista = Time.time + intervaloActualizacionLista;
+        }
+
+        player = EncontrarJugadorMasCercano();
+
+        if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
 
@@ -55,6 +67,39 @@ public class Turret : MonoBehaviour
         }
     }
 
+    void ActualizarListaDeJugadores()
+    {
+        jugadoresConocidos.Clear();
+        GameObject[] jugadores = GameObject.FindGameObjectsWithTag("Player");
+        foreach (GameObject j in jugadores)
+        {
+            if (j != null)
+            {
+                jugadoresConocidos.Add(j.transform);
+            }
+        }
+    }
+
+    Transform EncontrarJugadorMasCercano()
+    {
+        Transform masCercano = null;
+        float distanciaMinima = Mathf.Infinity;
+
+        foreach (Transform t in jugadoresConocidos)
+        {
+            if (t == null) continue; // jugador desconectado/destruido desde el ultimo escaneo
+
+            float distancia = Vector3.Distance(transform.position, t.position);
+            if (distancia < distanciaMinima)
+            {
+                distanciaMinima = distancia;
+                masCercano = t;
+            }
+        }
+
+        return masCercano;
+    }
+
     void Shoot()
     {
         if (projectilePrefab != null && spawnPoint != null)
@@ -65,14 +110,12 @@ public class Turret : MonoBehaviour
 
             GameObject bala = Instantiate(projectilePrefab, spawnPoint.position, rotacionBala);
 
-            // Asignar quién disparó, para que la bala se ignore a sí misma correctamente
             BalaSimple script = bala.GetComponent<BalaSimple>();
             if (script != null)
             {
                 script.origen = transform;
             }
 
-            // Ignorar colisión con TODOS los colliders de la torreta (raíz + hitboxes hijas)
             Collider colBala = bala.GetComponent<Collider>();
             if (colBala != null)
             {
