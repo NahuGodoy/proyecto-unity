@@ -7,7 +7,6 @@ using Photon.Pun;
 namespace Unity.FPS.Gameplay
 {
     [RequireComponent(typeof(PlayerInputHandler))]
-    [RequireComponent(typeof(PhotonView))]
     public class PlayerWeaponsManager : MonoBehaviourPun
     {
         public enum WeaponSwitchState

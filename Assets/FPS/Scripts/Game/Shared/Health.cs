@@ -125,6 +125,40 @@ namespace Unity.FPS.Game
             {
                 m_IsDead = true;
                 OnDie?.Invoke();
+                // Ensure the player GameObject is removed for all clients.
+                if (m_PhotonView != null && PhotonNetwork.IsConnected)
+                {
+                    // If we own this PhotonView, destroy it directly
+                    if (m_PhotonView.IsMine)
+                    {
+                        PhotonNetwork.Destroy(m_PhotonView.gameObject);
+                        // no ghost system anymore; rely on PhotonNetwork.Destroy to remove network object
+                    }
+                    else
+                    {
+                        // Ask the owner to destroy it (RPC to owner). If owner is missing, ask the MasterClient.
+                        if (m_PhotonView.Owner != null)
+                        {
+                            m_PhotonView.RPC(nameof(RPC_RequestDestroy), m_PhotonView.Owner);
+                        }
+                        else
+                        {
+                            m_PhotonView.RPC(nameof(RPC_RequestDestroy), RpcTarget.MasterClient);
+                        }
+                    }
+                }
+            }
+        }
+
+        [PunRPC]
+        void RPC_RequestDestroy()
+        {
+            if (m_PhotonView == null)
+                return;
+
+            if (m_PhotonView.IsMine || PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.Destroy(m_PhotonView.gameObject);
             }
         }
     }

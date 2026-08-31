@@ -858,7 +858,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de7599b2ed1e431709f62a2073dc3081, type: 3}
   m_Name: 
   m_EditorClassIdentifier: fps.Gameplay::Unity.FPS.Gameplay.Launcher
-  playerPrefab: {fileID: 8196832851833127357, guid: 901e61e93c04838d5a3fb320f90e2b11,
+  playerPrefab: {fileID: -7717476608775464305, guid: 761cdc9e4e883334cbdcea062d0befa7,
     type: 3}
   spawnPoint: {fileID: 837812273}
 --- !u!4 &1048193541

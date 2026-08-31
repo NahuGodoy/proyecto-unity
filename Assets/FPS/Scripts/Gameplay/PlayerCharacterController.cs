@@ -144,6 +144,43 @@ namespace Unity.FPS.Gameplay
                 if (actorsManager != null)
                     actorsManager.SetPlayer(gameObject);
             }
+
+            // Ensure remote instances synchronize their transform via PhotonTransformView (preferred) or PhotonTransformViewClassic
+            if (photonView != null && !photonView.IsMine)
+            {
+                UnityEngine.Component syncComp = null;
+
+                // Try new PhotonTransformView first
+                var ptvNew = GetComponent<PhotonTransformView>();
+                if (ptvNew != null)
+                {
+                    syncComp = ptvNew;
+                }
+                else
+                {
+                    // Try classic
+                    var ptvClassic = GetComponent<PhotonTransformViewClassic>();
+                    if (ptvClassic != null)
+                        syncComp = ptvClassic;
+                }
+
+                // If none present, add the classic one as fallback
+                if (syncComp == null)
+                {
+                    var added = gameObject.AddComponent<PhotonTransformViewClassic>();
+                    syncComp = added;
+                }
+
+                if (photonView.ObservedComponents == null)
+                {
+                    photonView.ObservedComponents = new System.Collections.Generic.List<UnityEngine.Component>();
+                }
+
+                if (!photonView.ObservedComponents.Contains(syncComp))
+                {
+                    photonView.ObservedComponents.Add(syncComp);
+                }
+            }
         }
 
         void Start()
