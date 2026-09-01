@@ -855,6 +855,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SceneName: PruebaEscenario
+  DisconnectBeforeLoad: 1
 --- !u!114 &1814912634
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1107,6 +1108,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SceneName: MainMenu
+  DisconnectBeforeLoad: 1
 --- !u!114 &1914197084
 MonoBehaviour:
   m_ObjectHideFlags: 0
