@@ -15114,12 +15114,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fe4101ca0bcb0f4d92b9184f86690c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  player: {fileID: 0}
   spawnPoint: {fileID: 7303032986346910116}
   projectilePrefab: {fileID: 3659995153115176983, guid: 3c6b27d949cdda749892906e1f1d1b27,
     type: 3}
   fireRate: 5
-  detectionRange: 70
+  detectionRange: 100
   vfxDestruccion: {fileID: 0}
 --- !u!1 &4231696942772258810
 GameObject:

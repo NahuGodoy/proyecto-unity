@@ -49,7 +49,7 @@ public class Turret : MonoBehaviour
         if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
-
+        Debug.Log("Turret: distancia=" + distance + " | rango=" + detectionRange + " | player=" + (player != null ? player.name : "NULL"));
         if (distance <= detectionRange)
         {
             Vector3 direction = player.position - transform.position;
@@ -71,11 +71,13 @@ public class Turret : MonoBehaviour
     {
         jugadoresConocidos.Clear();
         GameObject[] jugadores = GameObject.FindGameObjectsWithTag("Player");
+        Debug.Log("Jugadores encontrados con tag Player: " + jugadores.Length);
         foreach (GameObject j in jugadores)
         {
             if (j != null)
             {
                 jugadoresConocidos.Add(j.transform);
+                Debug.Log("  -> " + j.name + " en posición " + j.transform.position);
             }
         }
     }
