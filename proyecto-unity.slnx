@@ -1,7 +1,7 @@
 ﻿<Solution>
   <Project Path="PhotonChat.csproj" />
-  <Project Path="fps.UI.csproj" />
   <Project Path="fps.Game.csproj" />
+  <Project Path="fps.UI.csproj" />
   <Project Path="PhotonRealtime.csproj" />
   <Project Path="PhotonUnityNetworking.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
