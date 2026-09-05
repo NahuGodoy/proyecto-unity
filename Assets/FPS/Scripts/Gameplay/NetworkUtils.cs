@@ -30,33 +30,26 @@ namespace Unity.FPS.Gameplay
         {
             if (target == null) return;
 
+            Pickup pickup = target.GetComponent<Pickup>();
+            if (pickup == null) return;
+
             // Modo Offline
             if (!PhotonNetwork.IsConnected)
             {
-                Object.Destroy(target);
+                pickup.RespawnAfterDelay();
                 return;
             }
 
-            // Si el objeto tiene un PhotonView propio
-            PhotonView targetPV = target.GetComponent<PhotonView>();
-            if (targetPV != null)
-            {
-                if (targetPV.IsMine || PhotonNetwork.IsMasterClient)
-                {
-                    PhotonNetwork.Destroy(target);
-                }
-                return;
-            }
-
-            // Si es un pickup de la escena sin PhotonView:
+            // Scene pickups are hidden and restored through the player's owned RPC.
             PlayerCharacterController localPlayer = GetLocalPlayer();
             if (localPlayer != null)
             {
                 PhotonView playerPV = localPlayer.GetComponent<PhotonView>();
                 if (playerPV != null)
                 {
-                    // Notificamos a todos que oculten este pickup especificando nombre y posición
-                    playerPV.RPC(nameof(PlayerCharacterController.RPC_DisablePickup), RpcTarget.AllBuffered, target.name, target.transform.position);
+                    double respawnAt = PhotonNetwork.Time + pickup.RespawnDelay;
+                    playerPV.RPC(nameof(PlayerCharacterController.RPC_DisablePickup), RpcTarget.AllBuffered,
+                        target.name, target.transform.position, respawnAt);
                 }
             }
         }

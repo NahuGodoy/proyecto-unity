@@ -26,7 +26,7 @@ namespace Unity.FPS.Gameplay
                     EventManager.Broadcast(evt);
 
                     PlayPickupFeedback();
-                    Destroy(gameObject);
+                    NetworkUtils.PickupDestroy(gameObject);
                 }
             }
         }

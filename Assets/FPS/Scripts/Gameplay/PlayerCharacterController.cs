@@ -613,15 +613,19 @@ namespace Unity.FPS.Gameplay
             }
         }
         [PunRPC]
-        public void RPC_DisablePickup(string pickupName, Vector3 position)
+        public void RPC_DisablePickup(string pickupName, Vector3 position, double respawnAt)
         {
             // Buscamos el pickup en la escena por su nombre y posición aproximada
+            float respawnDelay = Mathf.Max(0f, (float)(respawnAt - PhotonNetwork.Time));
+            if (respawnDelay <= 0f)
+                return;
+
             Pickup[] allPickups = Object.FindObjectsByType<Pickup>(FindObjectsSortMode.None);
             foreach (var pickup in allPickups)
             {
                 if (pickup.gameObject.name == pickupName && Vector3.Distance(pickup.transform.position, position) < 0.5f)
                 {
-                    pickup.gameObject.SetActive(false);
+                    pickup.RespawnAfterDelay(respawnDelay);
                     break;
                 }
             }
