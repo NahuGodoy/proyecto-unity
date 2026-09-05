@@ -1648,6 +1648,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: fps.UI::Unity.FPS.UI.LoadSceneButton
   SceneName: PruebaEscenario
+  DisconnectBeforeLoad: 0
 --- !u!1 &1307828537
 GameObject:
   m_ObjectHideFlags: 0
@@ -1874,6 +1875,7 @@ MonoBehaviour:
   tipo: 1
   velocidad: 2
   distancia: -2
+  pausaEnPuntoAlto: 1.5
 --- !u!1 &1463056818 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7928995973453613020, guid: a8f3eec2805fa754790b88b1e6b09a58,
@@ -1895,6 +1897,7 @@ MonoBehaviour:
   tipo: 1
   velocidad: 2
   distancia: 2
+  pausaEnPuntoAlto: 1.5
 --- !u!1 &1558916512
 GameObject:
   m_ObjectHideFlags: 0
@@ -2006,6 +2009,7 @@ MonoBehaviour:
   tipo: 1
   velocidad: 2
   distancia: 2
+  pausaEnPuntoAlto: 1.5
 --- !u!1 &1588237699
 GameObject:
   m_ObjectHideFlags: 0
