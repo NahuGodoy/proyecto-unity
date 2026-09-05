@@ -13,14 +13,12 @@ namespace Unity.FPS.UI
         [Tooltip("Root GameObject of the menu used to toggle its activation")]
         public GameObject MenuRoot;
 
-        [Tooltip("Master volume when menu is open")] [Range(0.001f, 1f)]
-        public float VolumeWhenMenuOpen = 0.5f;
 
         [Tooltip("Slider component for look sensitivity")]
         public Slider LookSensitivitySlider;
 
-        [Tooltip("Toggle component for shadows")]
-        public Toggle ShadowsToggle;
+        [Tooltip("Slider component for volume")]
+        public Slider VolumeSlider;
 
         [Tooltip("Toggle component for invincibility")]
         public Toggle InvincibilityToggle;
@@ -42,6 +40,8 @@ namespace Unity.FPS.UI
 
         private bool m_IsBound = false;
 
+        private float m_MasterVolume = 1f;
+
         void Start()
         {
             MenuRoot.SetActive(false);
@@ -49,10 +49,12 @@ namespace Unity.FPS.UI
             m_FramerateCounter = FindAnyObjectByType<FramerateCounter>();
 
             // Configuración inicial independiente del jugador
-            if (ShadowsToggle != null)
+
+            if (VolumeSlider != null)
             {
-                ShadowsToggle.isOn = QualitySettings.shadows != ShadowQuality.Disable;
-                ShadowsToggle.onValueChanged.AddListener(OnShadowsChanged);
+                VolumeSlider.value = AudioUtility.GetMasterVolume();
+                /* VolumeSlider.value = m_MasterVolume; */
+                VolumeSlider.onValueChanged.AddListener(OnVolumeChanged);
             }
 
             if (FramerateToggle != null && m_FramerateCounter != null)
@@ -171,15 +173,14 @@ namespace Unity.FPS.UI
                     Time.timeScale = 0f;
                 }
 
-                AudioUtility.SetMasterVolume(VolumeWhenMenuOpen);
-                EventSystem.current.SetSelectedGameObject(null);
+               EventSystem.current.SetSelectedGameObject(null);
             }
             else
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
                 Time.timeScale = 1f;
-                AudioUtility.SetMasterVolume(1f);
+                AudioUtility.SetMasterVolume(m_MasterVolume);
             }
         }
 
@@ -189,9 +190,11 @@ namespace Unity.FPS.UI
                 m_PlayerInputsHandler.LookSensitivity = newValue;
         }
 
-        void OnShadowsChanged(bool newValue)
+
+        public void OnVolumeChanged(float newValue)
         {
-            QualitySettings.shadows = newValue ? ShadowQuality.All : ShadowQuality.Disable;
+            m_MasterVolume = newValue;
+            AudioUtility.SetMasterVolume(newValue);
         }
 
         void OnInvincibilityChanged(bool newValue)
