@@ -20,9 +20,6 @@ namespace Unity.FPS.UI
         [Tooltip("Slider component for volume")]
         public Slider VolumeSlider;
 
-        [Tooltip("Toggle component for invincibility")]
-        public Toggle InvincibilityToggle;
-
         [Tooltip("Toggle component for framerate display")]
         public Toggle FramerateToggle;
 
@@ -30,7 +27,7 @@ namespace Unity.FPS.UI
         public GameObject ControlImage;
 
         PlayerInputHandler m_PlayerInputsHandler;
-        Health m_PlayerHealth;
+
         FramerateCounter m_FramerateCounter;
 
         private InputAction m_SubmitAction;
@@ -129,9 +126,8 @@ namespace Unity.FPS.UI
             if (localPlayer == null) return;
 
             m_PlayerInputsHandler = localPlayer.GetComponent<PlayerInputHandler>();
-            m_PlayerHealth = localPlayer.GetComponent<Health>();
 
-            if (m_PlayerInputsHandler != null && m_PlayerHealth != null)
+            if (m_PlayerInputsHandler != null )
             {
                 // Enlazar sensibilidad de mouse
                 if (LookSensitivitySlider != null)
@@ -139,14 +135,6 @@ namespace Unity.FPS.UI
                     LookSensitivitySlider.value = m_PlayerInputsHandler.LookSensitivity;
                     LookSensitivitySlider.onValueChanged.RemoveAllListeners();
                     LookSensitivitySlider.onValueChanged.AddListener(OnMouseSensitivityChanged);
-                }
-
-                // Enlazar modo invencible
-                if (InvincibilityToggle != null)
-                {
-                    InvincibilityToggle.isOn = m_PlayerHealth.Invincible;
-                    InvincibilityToggle.onValueChanged.RemoveAllListeners();
-                    InvincibilityToggle.onValueChanged.AddListener(OnInvincibilityChanged);
                 }
 
                 m_IsBound = true;
@@ -195,12 +183,6 @@ namespace Unity.FPS.UI
         {
             m_MasterVolume = newValue;
             AudioUtility.SetMasterVolume(newValue);
-        }
-
-        void OnInvincibilityChanged(bool newValue)
-        {
-            if (m_PlayerHealth != null)
-                m_PlayerHealth.Invincible = newValue;
         }
 
         void OnFramerateCounterChanged(bool newValue)

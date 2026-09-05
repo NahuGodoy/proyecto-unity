@@ -1166,6 +1166,11 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1567544280599478587, guid: c996b53e9f849234393d1e90f68d1679,
+        type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 200
+      objectReference: {fileID: 0}
     - target: {fileID: 1958601101662326530, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
       propertyPath: m_AnchorMax.y
@@ -1189,7 +1194,7 @@ PrefabInstance:
     - target: {fileID: 2098175596807162676, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
       propertyPath: m_text
-      value: Volume
+      value: Volumen
       objectReference: {fileID: 0}
     - target: {fileID: 2098175596807162676, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
@@ -1220,6 +1225,11 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
+      objectReference: {fileID: 0}
+    - target: {fileID: 3150463912766333599, guid: c996b53e9f849234393d1e90f68d1679,
+        type: 3}
+      propertyPath: m_text
+      value: Contador de FPS
       objectReference: {fileID: 0}
     - target: {fileID: 3150463912766333599, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
@@ -1268,6 +1278,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3691324893788881875, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
+      propertyPath: m_text
+      value: Sensibilidad
+      objectReference: {fileID: 0}
+    - target: {fileID: 3691324893788881875, guid: c996b53e9f849234393d1e90f68d1679,
+        type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
       objectReference: {fileID: 0}
@@ -1283,13 +1298,30 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3957222142766549154, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
+      propertyPath: m_text
+      value: Mostrar
+      objectReference: {fileID: 0}
+    - target: {fileID: 3957222142766549154, guid: c996b53e9f849234393d1e90f68d1679,
+        type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
       objectReference: {fileID: 0}
     - target: {fileID: 4187677483290640802, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
+      propertyPath: m_text
+      value: 'Controles
+
+'
+      objectReference: {fileID: 0}
+    - target: {fileID: 4187677483290640802, guid: c996b53e9f849234393d1e90f68d1679,
+        type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
+      objectReference: {fileID: 0}
+    - target: {fileID: 4447577117291796858, guid: c996b53e9f849234393d1e90f68d1679,
+        type: 3}
+      propertyPath: m_text
+      value: Pausa/Opciones
       objectReference: {fileID: 0}
     - target: {fileID: 4447577117291796858, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
@@ -1469,6 +1501,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 1126671733474120667, guid: c996b53e9f849234393d1e90f68d1679, type: 3}
+    - {fileID: 5784240987228578634, guid: c996b53e9f849234393d1e90f68d1679, type: 3}
+    - {fileID: 2576910020329834068, guid: c996b53e9f849234393d1e90f68d1679, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 1228251534716032403, guid: c996b53e9f849234393d1e90f68d1679,
         type: 3}
