@@ -127,6 +127,8 @@ namespace Unity.FPS.Gameplay
         Vector3 m_GroundNormal;
         Vector3 m_CharacterVelocity;
         Vector3 m_LatestImpactSpeed;
+        Vector3 m_CheckpointPosition;
+        Quaternion m_CheckpointRotation;
         float m_LastTimeJumped = 0f;
         float m_CameraVerticalAngle = 0f;
         float m_FootstepDistanceCounter;
@@ -137,6 +139,8 @@ namespace Unity.FPS.Gameplay
 
         void Awake()
         {
+            m_Controller = GetComponent<CharacterController>();
+
             // Solo asignamos el jugador en ActorsManager si es el cliente local
             if (photonView.IsMine)
             {
@@ -245,6 +249,9 @@ namespace Unity.FPS.Gameplay
 
             m_Health.OnDie += OnDie;
 
+            m_CheckpointPosition = transform.position;
+            m_CheckpointRotation = transform.rotation;
+
             // force the crouch state to false when starting
             SetCrouchingState(false, true);
             UpdateCharacterHeight(true);
@@ -252,15 +259,22 @@ namespace Unity.FPS.Gameplay
 
         void Update()
         {
-            if (!photonView.IsMine)
+            if (!photonView.IsMine || m_Controller == null)
                 return;
             // Check for Y kill / Respawn
             if (!IsDead && transform.position.y < KillHeight)
             {
-                m_Health.TakeDamage(50,null);
+                const float voidFallDamage = 50f;
+                bool willDie = m_Health.CurrentHealth <= voidFallDamage;
+
+                m_Health.TakeDamage(voidFallDamage, null);
+
+                if (willDie)
+                    return;
+
                 CharacterVelocity = Vector3.zero;
                 m_Controller.enabled = false;
-                transform.position = new Vector3(0f, 1f, 0f);
+                transform.SetPositionAndRotation(m_CheckpointPosition, m_CheckpointRotation);
                 m_Controller.enabled = true;
             }
 
@@ -302,6 +316,18 @@ namespace Unity.FPS.Gameplay
             HandleCharacterMovement();
         }
 
+        void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (!photonView.IsMine || hit.normal.y <= 0.5f)
+                return;
+
+            CheckpointInfo checkpoint = hit.collider.GetComponentInParent<CheckpointInfo>();
+            if (checkpoint == null)
+                return;
+
+            checkpoint.GetRespawnPose(out m_CheckpointPosition, out m_CheckpointRotation);
+        }
+
         void OnDie()
         {
             IsDead = true;
@@ -309,7 +335,8 @@ namespace Unity.FPS.Gameplay
             // Tell the weapons manager to switch to a non-existing weapon in order to lower the weapon
             m_WeaponsManager.SwitchToWeaponIndex(-1, true);
 
-            EventManager.Broadcast(Events.PlayerDeathEvent);
+            m_Health.SkipNetworkDestruction = true;
+            Launcher.RespawnLocalPlayer();
         }
 
         void GroundCheck()

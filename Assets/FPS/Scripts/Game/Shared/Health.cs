@@ -17,6 +17,7 @@ namespace Unity.FPS.Game
 
         public float CurrentHealth { get; set; }
         public bool Invincible { get; set; }
+        public bool SkipNetworkDestruction { get; set; }
         public bool CanPickup() => CurrentHealth < MaxHealth;
 
         public float GetRatio() => CurrentHealth / MaxHealth;
@@ -125,6 +126,10 @@ namespace Unity.FPS.Game
             {
                 m_IsDead = true;
                 OnDie?.Invoke();
+
+                if (SkipNetworkDestruction)
+                    return;
+
                 // Ensure the player GameObject is removed for all clients.
                 if (m_PhotonView != null && PhotonNetwork.IsConnected)
                 {
@@ -132,7 +137,6 @@ namespace Unity.FPS.Game
                     if (m_PhotonView.IsMine)
                     {
                         PhotonNetwork.Destroy(m_PhotonView.gameObject);
-                        // no ghost system anymore; rely on PhotonNetwork.Destroy to remove network object
                     }
                     else
                     {
