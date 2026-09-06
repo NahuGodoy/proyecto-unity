@@ -15,7 +15,7 @@ namespace Unity.FPS.Gameplay
             {
                 playerHealth.Heal(HealAmount);
                 PlayPickupFeedback();
-                Destroy(gameObject);
+                NetworkUtils.PickupDestroy(gameObject);
             }
         }
     }

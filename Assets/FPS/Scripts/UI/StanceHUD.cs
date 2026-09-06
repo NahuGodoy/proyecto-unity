@@ -16,17 +16,11 @@ namespace Unity.FPS.UI
         [Tooltip("Sprite to display when crouching")]
         public Sprite CrouchingSprite;
 
+        PlayerCharacterController m_Character;
+
         void Start()
         {
-            PlayerCharacterController character = FindAnyObjectByType<PlayerCharacterController>();
-            if (character == null)
-            {
-                DebugUtility.HandleErrorIfNullFindObject<PlayerCharacterController, StanceHUD>(character, this);
-                StartCoroutine(WaitForCharacterAndInit());
-                return;
-            }
-
-            InitWithCharacter(character);
+            StartCoroutine(WaitForCharacterAndInit());
         }
 
         System.Collections.IEnumerator WaitForCharacterAndInit()
@@ -36,31 +30,35 @@ namespace Unity.FPS.UI
             PlayerCharacterController character = null;
             while (Time.time - start < timeout)
             {
-                character = FindAnyObjectByType<PlayerCharacterController>();
+                character = NetworkUtils.GetLocalPlayer();
                 if (character != null)
                     break;
                 yield return null;
             }
 
             if (character == null)
+            {
+                DebugUtility.HandleErrorIfNullFindObject<PlayerCharacterController, StanceHUD>(character, this);
                 yield break;
+            }
 
             InitWithCharacter(character);
         }
 
         void InitWithCharacter(PlayerCharacterController character)
         {
-            character.OnStanceChanged += OnStanceChanged;
-            OnStanceChanged(character.IsCrouching);
+            if (m_Character != null)
+                m_Character.OnStanceChanged -= OnStanceChanged;
+
+            m_Character = character;
+            m_Character.OnStanceChanged += OnStanceChanged;
+            OnStanceChanged(m_Character.IsCrouching);
         }
 
         void OnDestroy()
         {
-            PlayerCharacterController character = FindAnyObjectByType<PlayerCharacterController>();
-            if (character != null)
-            {
-                character.OnStanceChanged -= OnStanceChanged;
-            }
+            if (m_Character != null)
+                m_Character.OnStanceChanged -= OnStanceChanged;
         }
 
         void OnStanceChanged(bool crouched)

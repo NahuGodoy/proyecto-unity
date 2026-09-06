@@ -15,19 +15,11 @@ namespace Unity.FPS.UI
 
         PlayerWeaponsManager m_PlayerWeaponsManager;
         List<AmmoCounter> m_AmmoCounters = new List<AmmoCounter>();
+        bool m_IsInitialized;
 
         void Start()
         {
-            m_PlayerWeaponsManager = FindAnyObjectByType<PlayerWeaponsManager>();
-            if (m_PlayerWeaponsManager == null)
-            {
-                DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, WeaponHUDManager>(m_PlayerWeaponsManager,
-                    this);
-                StartCoroutine(WaitForManagerAndInit());
-                return;
-            }
-
-            InitWithManager();
+            StartCoroutine(WaitForManagerAndInit());
         }
 
         System.Collections.IEnumerator WaitForManagerAndInit()
@@ -37,14 +29,20 @@ namespace Unity.FPS.UI
             PlayerWeaponsManager mgr = null;
             while (Time.time - start < timeout)
             {
-                mgr = FindAnyObjectByType<PlayerWeaponsManager>();
+                PlayerCharacterController localPlayer = NetworkUtils.GetLocalPlayer();
+                if (localPlayer != null)
+                    mgr = localPlayer.GetComponent<PlayerWeaponsManager>();
+
                 if (mgr != null)
                     break;
                 yield return null;
             }
 
             if (mgr == null)
+            {
+                DebugUtility.HandleErrorIfNullFindObject<PlayerWeaponsManager, WeaponHUDManager>(mgr, this);
                 yield break;
+            }
 
             m_PlayerWeaponsManager = mgr;
             InitWithManager();
@@ -52,6 +50,10 @@ namespace Unity.FPS.UI
 
         void InitWithManager()
         {
+            if (m_IsInitialized)
+                return;
+
+            m_IsInitialized = true;
             WeaponController activeWeapon = m_PlayerWeaponsManager.GetActiveWeapon();
             if (activeWeapon)
             {

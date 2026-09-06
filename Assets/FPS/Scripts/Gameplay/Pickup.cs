@@ -18,11 +18,15 @@ namespace Unity.FPS.Gameplay
         [Tooltip("Sound played on pickup")] public AudioClip PickupSfx;
         [Tooltip("VFX spawned on pickup")] public GameObject PickupVfxPrefab;
 
+        [Tooltip("Seconds before the pickup becomes available again")]
+        public float RespawnDelay = 5f;
+
         public Rigidbody PickupRigidbody { get; private set; }
 
         Collider m_Collider;
         Vector3 m_StartPosition;
         bool m_HasPlayedFeedback;
+        bool m_IsAvailable = true;
 
         protected virtual void Start()
         {
@@ -51,6 +55,9 @@ namespace Unity.FPS.Gameplay
 
         void OnTriggerEnter(Collider other)
         {
+            if (!m_IsAvailable)
+                return;
+
             PlayerCharacterController pickingPlayer = other.GetComponent<PlayerCharacterController>();
 
             if (pickingPlayer == null)
@@ -101,6 +108,43 @@ namespace Unity.FPS.Gameplay
             }
 
             m_HasPlayedFeedback = true;
+        }
+
+        public void ResetPickupState()
+        {
+            m_HasPlayedFeedback = false;
+        }
+
+        public void RespawnAfterDelay()
+        {
+            RespawnAfterDelay(RespawnDelay);
+        }
+
+        public void RespawnAfterDelay(float delay)
+        {
+            if (!m_IsAvailable)
+                return;
+
+            m_IsAvailable = false;
+            if (m_Collider == null)
+                m_Collider = GetComponent<Collider>();
+            m_Collider.enabled = false;
+
+            foreach (Renderer renderer in GetComponentsInChildren<Renderer>())
+                renderer.enabled = false;
+
+            StartCoroutine(RespawnRoutine(delay));
+        }
+
+        System.Collections.IEnumerator RespawnRoutine(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            ResetPickupState();
+            m_IsAvailable = true;
+            m_Collider.enabled = true;
+
+            foreach (Renderer renderer in GetComponentsInChildren<Renderer>())
+                renderer.enabled = true;
         }
     }
 }
