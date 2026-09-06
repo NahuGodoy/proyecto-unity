@@ -25,7 +25,6 @@ public class BalaSimple : MonoBehaviour
 
     void Update()
     {
-        Debug.Log("Bala vivita, origen=" + (origen != null ? origen.name : "NULL") + " pos=" + transform.position);
         float deltaTimeSeguro = Mathf.Min(Time.deltaTime, 0.05f);
         float distanciaFrame = velocidad * deltaTimeSeguro;
         Vector3 direccion = transform.forward;
@@ -38,16 +37,7 @@ public class BalaSimple : MonoBehaviour
         QueryTriggerInteraction.Collide
         );
 
-        // --- DIAGNÓSTICO TEMPORAL ---
-        Debug.DrawRay(posicionAnterior, direccion * distanciaFrame, Color.red, 3f);
-        if (hits.Length > 0)
-        {
-            Debug.Log("Impactos detectados: " + hits.Length + " -> " + string.Join(", ", hits.Select(h => h.collider.name)));
-        }
-
-        Debug.DrawRay(posicionAnterior, direccion * distanciaFrame, Color.red, 3f); 
-        if (hits.Length > 0) Debug.Log("Impactos: " + hits.Length + " -> " + string.Join(", ", hits.Select(h => h.collider.name)) + " | origen=" + (origen != null ? origen.name : "NULL"));
-        // --- FIN DIAGNÓSTICO ---
+        
 
         // Ordenar por distancia para procesar el impacto más cercano válido primero
         var hitsOrdenados = hits.OrderBy(h => h.distance);
