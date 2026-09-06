@@ -1,36 +1,77 @@
 using UnityEngine;
 using Unity.FPS.Game;
+using System.Linq;
 
 public class BalaSimple : MonoBehaviour
 {
     public float velocidad = 25f;
     public float tiempoVida = 4f;
+    public GameObject vfxImpacto;
 
     [Header("Daño")]
     [Range(0f, 100f)]
     public float danoPorcentaje = 10f;
 
     [HideInInspector]
-    public Transform origen; // quién disparó esta bala (se asigna al instanciar)
+    public Transform origen;
+
+    private Vector3 posicionAnterior;
 
     void Start()
     {
+        posicionAnterior = transform.position;
         Destroy(gameObject, tiempoVida);
     }
 
     void Update()
     {
-        transform.Translate(Vector3.forward * velocidad * Time.deltaTime);
+        Debug.Log("Bala vivita, origen=" + (origen != null ? origen.name : "NULL") + " pos=" + transform.position);
+        float deltaTimeSeguro = Mathf.Min(Time.deltaTime, 0.05f);
+        float distanciaFrame = velocidad * deltaTimeSeguro;
+        Vector3 direccion = transform.forward;
+
+        RaycastHit[] hits = Physics.RaycastAll(
+        posicionAnterior,
+        direccion,
+        distanciaFrame,
+        ~0,
+        QueryTriggerInteraction.Collide
+        );
+
+        // --- DIAGNÓSTICO TEMPORAL ---
+        Debug.DrawRay(posicionAnterior, direccion * distanciaFrame, Color.red, 3f);
+        if (hits.Length > 0)
+        {
+            Debug.Log("Impactos detectados: " + hits.Length + " -> " + string.Join(", ", hits.Select(h => h.collider.name)));
+        }
+
+        Debug.DrawRay(posicionAnterior, direccion * distanciaFrame, Color.red, 3f); 
+        if (hits.Length > 0) Debug.Log("Impactos: " + hits.Length + " -> " + string.Join(", ", hits.Select(h => h.collider.name)) + " | origen=" + (origen != null ? origen.name : "NULL"));
+        // --- FIN DIAGNÓSTICO ---
+
+        // Ordenar por distancia para procesar el impacto más cercano válido primero
+        var hitsOrdenados = hits.OrderBy(h => h.distance);
+
+        foreach (RaycastHit hit in hitsOrdenados)
+        {
+            // Ignorar cualquier collider que pertenezca a quien disparó la bala
+            if (origen != null && hit.collider.transform.root == origen.root) continue;
+
+            // Ignorar otras balas
+            if (hit.collider.GetComponent<BalaSimple>() != null) continue;
+
+            // Este es un impacto real: procesar y salir
+            ProcesarImpacto(hit.collider, hit.point);
+            return;
+        }
+
+        // Si no hubo ningún impacto válido, avanzar normalmente
+        transform.position = posicionAnterior + direccion * distanciaFrame;
+        posicionAnterior = transform.position;
     }
 
-    private void OnTriggerEnter(Collider other)
+    void ProcesarImpacto(Collider other, Vector3 puntoImpacto)
     {
-        Debug.Log("Bala tocó: " + other.name); 
-        // Si el objeto golpeado pertenece a la MISMA jerarquía que disparó la bala, ignorar
-        if (origen != null && other.transform.root == origen.root) return;
-
-        if (other.GetComponent<BalaSimple>()) return; // no chocar entre balas
-
         Health health = other.GetComponentInParent<Health>();
         if (health != null)
         {
@@ -38,6 +79,8 @@ public class BalaSimple : MonoBehaviour
             health.TakeDamage(danoReal, gameObject);
         }
 
+        transform.position = puntoImpacto;
+        if (vfxImpacto != null) Instantiate(vfxImpacto, puntoImpacto, Quaternion.identity);
         Destroy(gameObject);
     }
 }

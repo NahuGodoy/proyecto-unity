@@ -58,7 +58,9 @@ public class Turret : MonoBehaviour
             {
                 transform.rotation = Quaternion.LookRotation(direction);
             }
-
+            RaycastHit hitTest;
+            bool bloqueado = Physics.Linecast(spawnPoint.position, player.position, out hitTest);
+            Debug.Log((bloqueado ? "BLOQUEADO por: " + hitTest.collider.name : "LIBRE, sin obstaculos") + " | Torreta=" + spawnPoint.position + " Jugador=" + player.position);
             if (Time.time >= nextFireTime)
             {
                 Shoot();
@@ -101,6 +103,8 @@ public class Turret : MonoBehaviour
 
         return masCercano;
     }
+
+    
 
     void Shoot()
     {
