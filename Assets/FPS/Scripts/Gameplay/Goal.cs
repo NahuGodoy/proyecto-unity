@@ -4,7 +4,7 @@ using Photon.Pun;
 
 namespace Unity.FPS.Gameplay
 {
-      public class Goal : MonoBehaviour
+    public class Goal : MonoBehaviourPun
     {
         private void OnTriggerEnter(Collider other)
         {
@@ -17,10 +17,22 @@ namespace Unity.FPS.Gameplay
             {
                 if (!playerPhotonView.IsMine)
                     return;
-            }
 
-            SceneManager.LoadScene("WinScene");
+                photonView.RPC("GameOver", RpcTarget.All, playerPhotonView.Owner.ActorNumber);
+            }
+            else
+            {
+                SceneManager.LoadScene("WinScene");
+            }
+        }
+
+        [PunRPC]
+        void GameOver(int winnerID)
+        {
+            if (PhotonNetwork.LocalPlayer.ActorNumber == winnerID)
+                SceneManager.LoadScene("WinScene");
+            else
+                SceneManager.LoadScene("LoseScene");
         }
     }
-  
 }
