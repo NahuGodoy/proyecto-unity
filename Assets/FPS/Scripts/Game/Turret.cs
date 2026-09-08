@@ -49,7 +49,6 @@ public class Turret : MonoBehaviour
         if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
-        Debug.Log("Turret: distancia=" + distance + " | rango=" + detectionRange + " | player=" + (player != null ? player.name : "NULL"));
         if (distance <= detectionRange)
         {
             Vector3 direction = player.position - transform.position;
@@ -60,7 +59,6 @@ public class Turret : MonoBehaviour
             }
             RaycastHit hitTest;
             bool bloqueado = Physics.Linecast(spawnPoint.position, player.position, out hitTest);
-            Debug.Log((bloqueado ? "BLOQUEADO por: " + hitTest.collider.name : "LIBRE, sin obstaculos") + " | Torreta=" + spawnPoint.position + " Jugador=" + player.position);
             if (Time.time >= nextFireTime)
             {
                 Shoot();
@@ -73,13 +71,11 @@ public class Turret : MonoBehaviour
     {
         jugadoresConocidos.Clear();
         GameObject[] jugadores = GameObject.FindGameObjectsWithTag("Player");
-        Debug.Log("Jugadores encontrados con tag Player: " + jugadores.Length);
         foreach (GameObject j in jugadores)
         {
             if (j != null)
             {
                 jugadoresConocidos.Add(j.transform);
-                Debug.Log("  -> " + j.name + " en posición " + j.transform.position);
             }
         }
     }
@@ -131,10 +127,6 @@ public class Turret : MonoBehaviour
                     Physics.IgnoreCollision(colBala, c);
                 }
             }
-        }
-        else
-        {
-            Debug.LogWarning("Falta asignar el ProjectilePrefab o el SpawnPoint en la Torreta.");
         }
     }
 
