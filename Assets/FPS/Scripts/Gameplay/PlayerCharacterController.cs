@@ -1,11 +1,12 @@
 ﻿using Unity.FPS.Game;
 using UnityEngine;
 using UnityEngine.Events;
+using Photon.Pun; 
 
 namespace Unity.FPS.Gameplay
 {
     [RequireComponent(typeof(CharacterController), typeof(PlayerInputHandler), typeof(AudioSource))]
-    public class PlayerCharacterController : MonoBehaviour
+    public class PlayerCharacterController : MonoBehaviourPunCallbacks
     {
         [Header("References")] [Tooltip("Reference to the main camera used for the player")]
         public Camera PlayerCamera;
@@ -49,6 +50,12 @@ namespace Unity.FPS.Gameplay
 
         [Range(0.1f, 1f)] [Tooltip("Rotation speed multiplier when aiming")]
         public float AimingRotationMultiplier = 0.4f;
+
+        [Range(-90f, 0f)] [Tooltip("Minimum vertical camera angle")]
+        public float MinCameraVerticalAngle = -89f;
+
+        [Range(0f, 90f)] [Tooltip("Maximum vertical camera angle")]
+        public float MaxCameraVerticalAngle = 89f;
 
         [Header("Jump")] [Tooltip("Force applied upward when jumping")]
         public float JumpForce = 9f;
@@ -103,6 +110,7 @@ namespace Unity.FPS.Gameplay
         public bool HasJumpedThisFrame { get; private set; }
         public bool IsDead { get; private set; }
         public bool IsCrouching { get; private set; }
+        private FloorMovement m_PlataformaActual;
 
         public float RotationMultiplier
         {
@@ -125,6 +133,8 @@ namespace Unity.FPS.Gameplay
         Vector3 m_GroundNormal;
         Vector3 m_CharacterVelocity;
         Vector3 m_LatestImpactSpeed;
+        Vector3 m_CheckpointPosition;
+        Quaternion m_CheckpointRotation;
         float m_LastTimeJumped = 0f;
         float m_CameraVerticalAngle = 0f;
         float m_FootstepDistanceCounter;
@@ -135,14 +145,94 @@ namespace Unity.FPS.Gameplay
 
         void Awake()
         {
-            ActorsManager actorsManager = FindAnyObjectByType<ActorsManager>();
-            if (actorsManager != null)
-                actorsManager.SetPlayer(gameObject);
+            m_Controller = GetComponent<CharacterController>();
+
+            // Solo asignamos el jugador en ActorsManager si es el cliente local
+            if (photonView.IsMine)
+            {
+                ActorsManager actorsManager = FindAnyObjectByType<ActorsManager>();
+                if (actorsManager != null)
+                    actorsManager.SetPlayer(gameObject);
+            }
+
+            // Ensure remote instances synchronize their transform via PhotonTransformView (preferred) or PhotonTransformViewClassic
+            if (photonView != null && !photonView.IsMine)
+            {
+                UnityEngine.Component syncComp = null;
+
+                // Try new PhotonTransformView first
+                var ptvNew = GetComponent<PhotonTransformView>();
+                if (ptvNew != null)
+                {
+                    syncComp = ptvNew;
+                }
+                else
+                {
+                    // Try classic
+                    var ptvClassic = GetComponent<PhotonTransformViewClassic>();
+                    if (ptvClassic != null)
+                        syncComp = ptvClassic;
+                }
+
+                // If none present, add the classic one as fallback
+                if (syncComp == null)
+                {
+                    var added = gameObject.AddComponent<PhotonTransformViewClassic>();
+                    syncComp = added;
+                }
+
+                if (photonView.ObservedComponents == null)
+                {
+                    photonView.ObservedComponents = new System.Collections.Generic.List<UnityEngine.Component>();
+                }
+
+                if (!photonView.ObservedComponents.Contains(syncComp))
+                {
+                    photonView.ObservedComponents.Add(syncComp);
+                }
+            }
         }
 
         void Start()
         {
-            // fetch components on the same gameObject
+            // -------------------------------------------------------------
+            // 1. DESACTIVAR COMPONENTES SI PERTENECE A OTRO JUGADOR
+            // -------------------------------------------------------------
+            if (!photonView.IsMine)
+            {
+                // Apagar la cámara del jugador remoto para que no sobreescriba la pantalla local
+                if (PlayerCamera != null)
+                    PlayerCamera.gameObject.SetActive(false);
+
+                // Apagar el AudioListener del jugador remoto
+                AudioListener audioListener = GetComponentInChildren<AudioListener>();
+                if (audioListener != null)
+                    audioListener.enabled = false;
+
+                // Desactivar el control de inputs en jugadores remotos
+                m_InputHandler = GetComponent<PlayerInputHandler>();
+                if (m_InputHandler != null)
+                    m_InputHandler.enabled = false;
+
+                // Opcional: Desactivar el gestor de armas remoto si maneja inputs directos
+                m_WeaponsManager = GetComponent<PlayerWeaponsManager>();
+                if (m_WeaponsManager != null)
+                    m_WeaponsManager.enabled = false;
+
+                // Salimos para no ejecutar la lógica de inicialización del jugador local
+                return;
+            }
+            if (PlayerCamera != null)
+                PlayerCamera.gameObject.SetActive(true);
+
+            AudioListener localAudioListener = GetComponentInChildren<AudioListener>();
+            if (localAudioListener != null)
+                localAudioListener.enabled = true;
+
+
+            // -------------------------------------------------------------
+            // 2. INICIALIZACIÓN NORMAL PARA EL JUGADOR LOCAL (photonView.IsMine)
+            // -------------------------------------------------------------
             m_Controller = GetComponent<CharacterController>();
             DebugUtility.HandleErrorIfNullGetComponent<CharacterController, PlayerCharacterController>(m_Controller,
                 this, gameObject);
@@ -165,6 +255,9 @@ namespace Unity.FPS.Gameplay
 
             m_Health.OnDie += OnDie;
 
+            m_CheckpointPosition = transform.position;
+            m_CheckpointRotation = transform.rotation;
+
             // force the crouch state to false when starting
             SetCrouchingState(false, true);
             UpdateCharacterHeight(true);
@@ -172,10 +265,23 @@ namespace Unity.FPS.Gameplay
 
         void Update()
         {
-            // check for Y kill
+            if (!photonView.IsMine || m_Controller == null)
+                return;
+            // Check for Y kill / Respawn
             if (!IsDead && transform.position.y < KillHeight)
             {
-                m_Health.Kill();
+                const float voidFallDamage = 50f;
+                bool willDie = m_Health.CurrentHealth <= voidFallDamage;
+
+                m_Health.TakeDamage(voidFallDamage, null);
+
+                if (willDie)
+                    return;
+
+                CharacterVelocity = Vector3.zero;
+                m_Controller.enabled = false;
+                transform.SetPositionAndRotation(m_CheckpointPosition, m_CheckpointRotation);
+                m_Controller.enabled = true;
             }
 
             HasJumpedThisFrame = false;
@@ -216,6 +322,18 @@ namespace Unity.FPS.Gameplay
             HandleCharacterMovement();
         }
 
+        void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (!photonView.IsMine || hit.normal.y <= 0.5f)
+                return;
+
+            CheckpointInfo checkpoint = hit.collider.GetComponentInParent<CheckpointInfo>();
+            if (checkpoint == null)
+                return;
+
+            checkpoint.GetRespawnPose(out m_CheckpointPosition, out m_CheckpointRotation);
+        }
+
         void OnDie()
         {
             IsDead = true;
@@ -223,7 +341,8 @@ namespace Unity.FPS.Gameplay
             // Tell the weapons manager to switch to a non-existing weapon in order to lower the weapon
             m_WeaponsManager.SwitchToWeaponIndex(-1, true);
 
-            EventManager.Broadcast(Events.PlayerDeathEvent);
+            m_Health.SkipNetworkDestruction = true;
+            Launcher.RespawnLocalPlayer();
         }
 
         void GroundCheck()
@@ -235,6 +354,7 @@ namespace Unity.FPS.Gameplay
             // reset values before the ground check
             IsGrounded = false;
             m_GroundNormal = Vector3.up;
+            m_PlataformaActual = null;
 
             // only try to detect ground if it's been a short amount of time since last jump; otherwise we may snap to the ground instantly after we try jumping
             if (Time.time >= m_LastTimeJumped + k_JumpGroundingPreventionTime)
@@ -253,6 +373,9 @@ namespace Unity.FPS.Gameplay
                         IsNormalUnderSlopeLimit(m_GroundNormal))
                     {
                         IsGrounded = true;
+
+                        // DETECTAR PLATAFORMA MÓVIL
+                        m_PlataformaActual = hit.collider.GetComponent<FloorMovement>();
 
                         // handle snapping to the ground
                         if (hit.distance > m_Controller.skinWidth)
@@ -280,7 +403,8 @@ namespace Unity.FPS.Gameplay
                 m_CameraVerticalAngle += m_InputHandler.GetLookInputsVertical() * RotationSpeed * RotationMultiplier;
 
                 // limit the camera's vertical angle to min/max
-                m_CameraVerticalAngle = Mathf.Clamp(m_CameraVerticalAngle, -89f, 89f);
+                m_CameraVerticalAngle = Mathf.Clamp(m_CameraVerticalAngle, MinCameraVerticalAngle,
+                    MaxCameraVerticalAngle);
 
                 // apply the vertical angle as a local rotation to the camera transform along its right axis (makes it pivot up and down)
                 PlayerCamera.transform.localEulerAngles = new Vector3(m_CameraVerticalAngle, 0, 0);
@@ -371,7 +495,16 @@ namespace Unity.FPS.Gameplay
             // apply the final calculated velocity value as a character movement
             Vector3 capsuleBottomBeforeMove = GetCapsuleBottomHemisphere();
             Vector3 capsuleTopBeforeMove = GetCapsuleTopHemisphere(m_Controller.height);
-            m_Controller.Move(CharacterVelocity * Time.deltaTime);
+
+            // --- MODIFICACIÓN: Sumar el movimiento de la plataforma ---
+            Vector3 totalMovement = CharacterVelocity * Time.deltaTime;
+            if (IsGrounded && m_PlataformaActual != null)
+            {
+                totalMovement += m_PlataformaActual.DeltaMovimiento;
+            }
+
+            m_Controller.Move(totalMovement);
+
 
             // detect obstructions to adjust velocity accordingly
             m_LatestImpactSpeed = Vector3.zero;
@@ -472,6 +605,37 @@ namespace Unity.FPS.Gameplay
 
             IsCrouching = crouched;
             return true;
+        }
+        [PunRPC]
+        public void RPC_ShootFX()
+        {
+            PlayerWeaponsManager weaponsManager = GetComponent<PlayerWeaponsManager>();
+            if (weaponsManager != null)
+            {
+                WeaponController activeWeapon = weaponsManager.GetActiveWeapon();
+                if (activeWeapon != null)
+                {
+                    activeWeapon.ExecuteShootFX();
+                }
+            }
+        }
+        [PunRPC]
+        public void RPC_DisablePickup(string pickupName, Vector3 position, double respawnAt)
+        {
+            // Buscamos el pickup en la escena por su nombre y posición aproximada
+            float respawnDelay = Mathf.Max(0f, (float)(respawnAt - PhotonNetwork.Time));
+            if (respawnDelay <= 0f)
+                return;
+
+            Pickup[] allPickups = Object.FindObjectsByType<Pickup>(FindObjectsSortMode.None);
+            foreach (var pickup in allPickups)
+            {
+                if (pickup.gameObject.name == pickupName && Vector3.Distance(pickup.transform.position, position) < 0.5f)
+                {
+                    pickup.RespawnAfterDelay(respawnDelay);
+                    break;
+                }
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Unity.FPS.Game;
 using UnityEngine;
 using UnityEngine.Events;
+using Photon.Pun;
 
 namespace Unity.FPS.Gameplay
 {
@@ -50,6 +51,12 @@ namespace Unity.FPS.Gameplay
         public bool IsPlayergrounded() => m_PlayerCharacterController.IsGrounded;
 
         public UnityAction<bool> OnUnlockJetpack;
+        private PhotonView m_PhotonView;
+
+        void Awake()
+        {
+            m_PhotonView = GetComponent<PhotonView>();
+        }
 
         void Start()
         {
@@ -70,6 +77,8 @@ namespace Unity.FPS.Gameplay
 
         void Update()
         {
+            if (!m_PhotonView.IsMine)
+                return;
             // jetpack can only be used if not grounded and jump has been pressed again once in-air
             if (IsPlayergrounded())
             {
@@ -145,10 +154,29 @@ namespace Unity.FPS.Gameplay
             if (IsJetpackUnlocked)
                 return false;
 
-            OnUnlockJetpack.Invoke(true);
+            if (m_PhotonView != null && PhotonNetwork.IsConnected)
+            {
+                m_PhotonView.RPC(nameof(RPC_TryUnlock), RpcTarget.All);
+            }
+            else
+            {
+                RPC_TryUnlock();
+            }
+
+            return true;
+        }
+
+        [PunRPC]
+        public void RPC_TryUnlock()
+        {
+            if (IsJetpackUnlocked)
+                return;
+
             IsJetpackUnlocked = true;
             m_LastTimeOfUse = Time.time;
-            return true;
+
+            
+            OnUnlockJetpack?.Invoke(true);
         }
     }
 }

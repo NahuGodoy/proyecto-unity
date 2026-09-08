@@ -18,22 +18,35 @@ namespace Unity.FPS.UI
 
         Jetpack m_Jetpack;
 
-        void Awake()
+        void Start()
         {
-            m_Jetpack = FindAnyObjectByType<Jetpack>();
-            DebugUtility.HandleErrorIfNullFindObject<Jetpack, JetpackCounter>(m_Jetpack, this);
-
-            FillBarColorChange.Initialize(1f, 0f);
+            TryBindPlayer();
         }
 
         void Update()
         {
+            if (m_Jetpack == null)
+            {
+                TryBindPlayer();
+                return;
+            }
+
             MainCanvasGroup.gameObject.SetActive(m_Jetpack.IsJetpackUnlocked);
 
             if (m_Jetpack.IsJetpackUnlocked)
             {
                 JetpackFillImage.fillAmount = m_Jetpack.CurrentFillRatio;
                 FillBarColorChange.UpdateVisual(m_Jetpack.CurrentFillRatio);
+            }
+        }
+
+        private void TryBindPlayer()
+        {
+            PlayerCharacterController localPlayer = NetworkUtils.GetLocalPlayer();
+
+            if (localPlayer != null)
+            {
+                m_Jetpack = localPlayer.GetComponent<Jetpack>();
             }
         }
     }

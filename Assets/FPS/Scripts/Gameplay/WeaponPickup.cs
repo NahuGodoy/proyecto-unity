@@ -1,5 +1,6 @@
 ﻿using Unity.FPS.Game;
 using UnityEngine;
+using Photon.Pun;
 
 namespace Unity.FPS.Gameplay
 {
@@ -22,6 +23,11 @@ namespace Unity.FPS.Gameplay
 
         protected override void OnPicked(PlayerCharacterController byPlayer)
         {
+            PhotonView playerPV = byPlayer.GetComponent<PhotonView>();
+            
+            if (playerPV != null && PhotonNetwork.IsConnected && !playerPV.IsMine)
+                return;
+
             PlayerWeaponsManager playerWeaponsManager = byPlayer.GetComponent<PlayerWeaponsManager>();
             if (playerWeaponsManager)
             {
@@ -34,7 +40,8 @@ namespace Unity.FPS.Gameplay
                     }
 
                     PlayPickupFeedback();
-                    Destroy(gameObject);
+
+                    NetworkUtils.PickupDestroy(gameObject);
                 }
             }
         }

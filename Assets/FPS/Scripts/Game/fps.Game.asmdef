@@ -1,6 +1,9 @@
 {
     "name": "fps.Game",
+    "rootNamespace": "",
     "references": [
+        "GUID:57c32fc907df0f54e8e6e8f0d2488336",
+        "GUID:831409e8f9d13b5479a3baef9822ad34",
         "GUID:1826c0224c0d048b88112c79bbb0cd85"
     ],
     "includePlatforms": [],
